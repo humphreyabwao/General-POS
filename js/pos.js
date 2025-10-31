@@ -16,12 +16,10 @@ function initializePOS() {
     initializePaymentMethods();
     initializeDiscountTax();
     initializeCheckoutProcess();
-    loadPOSStats();
     
     // Clear cart on initialization
     cart = [];
     updateCartDisplay();
-    updatePOSStats();
     
     // Set default values for discount and tax to 0
     const discountInput = document.getElementById('posDiscountPercent');
@@ -37,6 +35,15 @@ function initializePOS() {
     
     // Initial calculation
     calculateTotals();
+    
+    // Listen to real-time state changes
+    StateEvents.on('sales:updated', updatePOSStats);
+    StateEvents.on('sync:ready', loadPOSStats);
+    
+    // Initial load if data is already available
+    if (AppState.isInitialized) {
+        loadPOSStats();
+    }
 }
 
 // ===========================
@@ -103,45 +110,8 @@ async function searchProducts(searchTerm) {
         searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
         searchResults.style.display = 'block';
         
-        // Get all inventory items from localStorage (where inventory module stores them)
-        const inventoryItems = JSON.parse(localStorage.getItem('inventoryItems') || '[]');
-        
-        // If no items in inventory, try Firebase or use mock data
-        if (inventoryItems.length === 0) {
-            if (db) {
-                // Search in Firebase
-                const productsRef = db.collection('inventory');
-                const snapshot = await productsRef.get();
-                
-                const results = [];
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    const searchableText = `${product.name} ${product.sku} ${product.barcode || ''} ${product.category}`.toLowerCase();
-                    
-                    if (searchableText.includes(searchTerm)) {
-                        results.push(product);
-                    }
-                });
-                
-                displaySearchResults(results);
-            } else {
-                // Use mock data if no inventory and Firebase not configured
-                const mockProducts = getMockProducts().filter(product => 
-                    product.name.toLowerCase().includes(searchTerm) ||
-                    product.sku.toLowerCase().includes(searchTerm) ||
-                    product.barcode.toLowerCase().includes(searchTerm) ||
-                    product.category.toLowerCase().includes(searchTerm)
-                );
-                displaySearchResults(mockProducts);
-            }
-            return;
-        }
-        
-        // Search in inventory items (real-time)
-        const results = inventoryItems.filter(product => {
-            const searchableText = `${product.name || ''} ${product.sku || ''} ${product.barcode || ''} ${product.category || ''}`.toLowerCase();
-            return searchableText.includes(searchTerm);
-        });
+        // Use global searchProducts function
+        const results = window.searchProducts(searchTerm, 10);
         
         displaySearchResults(results);
         
@@ -746,47 +716,11 @@ async function processSale() {
             status: 'completed'
         };
         
-        // Update inventory stock in localStorage
-        const inventoryItems = JSON.parse(localStorage.getItem('inventoryItems') || '[]');
-        let inventoryUpdated = false;
+        // Save sale to Firebase using global function
+        const result = await recordSale(saleData);
         
-        for (const item of cart) {
-            const productIndex = inventoryItems.findIndex(p => 
-                (p.id && p.id === item.id) || p.sku === item.sku
-            );
-            
-            if (productIndex !== -1) {
-                // Reduce stock quantity
-                inventoryItems[productIndex].quantity = Math.max(0, (inventoryItems[productIndex].quantity || 0) - item.quantity);
-                inventoryUpdated = true;
-            }
-        }
-        
-        // Save updated inventory
-        if (inventoryUpdated) {
-            localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
-        }
-        
-        if (db) {
-            // Save to Firebase
-            await db.collection('sales').add(saleData);
-            
-            // Update inventory stock in Firebase as well
-            for (const item of cart) {
-                const productRef = db.collection('inventory').doc(item.id);
-                const productDoc = await productRef.get();
-                if (productDoc.exists) {
-                    const currentStock = productDoc.data().stock || 0;
-                    await productRef.update({
-                        stock: Math.max(0, currentStock - item.quantity)
-                    });
-                }
-            }
-        } else {
-            // Save to localStorage for demo
-            const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-            sales.push(saleData);
-            localStorage.setItem('sales', JSON.stringify(sales));
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to record sale');
         }
         
         // Close checkout modal first
@@ -1286,7 +1220,7 @@ function displayTodaySalesTable(sales) {
     let html = '''';
     sales.forEach(sale => {
         const saleDate = new Date(sale.date);
-        const timeString = saleDate.toLocaleTimeString(''en-US'', { 
+        const timeString = saleDate.toLocaleTimeString(''en-KE'', { 
             hour: ''2-digit'', 
             minute: ''2-digit'' 
         });
@@ -1370,7 +1304,7 @@ function showSaleDetailsModal(sale) {
     modal.style.display = ''flex'';
     
     const saleDate = new Date(sale.date);
-    const dateString = saleDate.toLocaleString(''en-US'', {
+    const dateString = saleDate.toLocaleString(''en-KE'', {
         year: ''numeric'',
         month: ''long'',
         day: ''numeric'',

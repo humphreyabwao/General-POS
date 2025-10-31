@@ -3,30 +3,42 @@
 // ===========================
 
 // Firebase configuration object
-// Replace these values with your actual Firebase project credentials
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDrZMtOLrTLOwnjAyY6lhjI73ftkPIIyJg",
+    authDomain: "vendly-7e566.firebaseapp.com",
+    databaseURL: "https://vendly-7e566-default-rtdb.firebaseio.com", // Add this for Realtime Database
+    projectId: "vendly-7e566",
+    storageBucket: "vendly-7e566.firebasestorage.app",
+    messagingSenderId: "736329773393",
+    appId: "1:736329773393:web:4fcff1e7117fc55d21e370",
+    measurementId: "G-ENHRRHHP7Q"
 };
 
 // Initialize Firebase
-let db = null;
+let database = null; // Realtime Database
 let auth = null;
 let storage = null;
 
 try {
     firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
+    database = firebase.database(); // Initialize Realtime Database
     auth = firebase.auth();
     storage = firebase.storage();
     
-    console.log('Firebase initialized successfully');
+    console.log('✅ Firebase initialized successfully');
+    console.log('🔥 Realtime Database connected');
+    console.log('📍 Database URL:', firebaseConfig.databaseURL);
+    
+    // Test database connection
+    database.ref('.info/connected').on('value', (snapshot) => {
+        if (snapshot.val() === true) {
+            console.log('✅ Connected to Firebase Realtime Database');
+        } else {
+            console.log('❌ Disconnected from Firebase Realtime Database');
+        }
+    });
 } catch (error) {
-    console.error('Firebase initialization error:', error);
+    console.error('❌ Firebase initialization error:', error);
 }
 
 // ===========================
@@ -76,42 +88,58 @@ const FirebaseAuth = {
     }
 };
 
-// Firestore Database
+// Realtime Database Helper Functions
 const FirebaseDB = {
-    // Add document to collection
-    addDocument: async (collection, data) => {
+    // Add data to a path (push creates unique ID)
+    addData: async (path, data) => {
         try {
-            const docRef = await db.collection(collection).add({
+            const ref = database.ref(path);
+            const newRef = ref.push();
+            await newRef.set({
                 ...data,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                id: newRef.key,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
             });
-            return { success: true, id: docRef.id };
+            return { success: true, id: newRef.key };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     
-    // Get document by ID
-    getDocument: async (collection, docId) => {
+    // Set data at a specific path (overwrites)
+    setData: async (path, data) => {
         try {
-            const doc = await db.collection(collection).doc(docId).get();
-            if (doc.exists) {
-                return { success: true, data: { id: doc.id, ...doc.data() } };
+            await database.ref(path).set({
+                ...data,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+    
+    // Get data from a path
+    getData: async (path) => {
+        try {
+            const snapshot = await database.ref(path).once('value');
+            if (snapshot.exists()) {
+                return { success: true, data: snapshot.val() };
             } else {
-                return { success: false, error: 'Document not found' };
+                return { success: false, error: 'Data not found' };
             }
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     
-    // Update document
-    updateDocument: async (collection, docId, data) => {
+    // Update data at a path (merges with existing data)
+    updateData: async (path, data) => {
         try {
-            await db.collection(collection).doc(docId).update({
+            await database.ref(path).update({
                 ...data,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
             });
             return { success: true };
         } catch (error) {
@@ -119,55 +147,129 @@ const FirebaseDB = {
         }
     },
     
-    // Delete document
-    deleteDocument: async (collection, docId) => {
+    // Delete data at a path
+    deleteData: async (path) => {
         try {
-            await db.collection(collection).doc(docId).delete();
+            await database.ref(path).remove();
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     
-    // Get all documents from collection
-    getAllDocuments: async (collection) => {
+    // Get all items from a path
+    getAllData: async (path) => {
         try {
-            const snapshot = await db.collection(collection).get();
-            const documents = [];
-            snapshot.forEach(doc => {
-                documents.push({ id: doc.id, ...doc.data() });
+            const snapshot = await database.ref(path).once('value');
+            const data = [];
+            snapshot.forEach(childSnapshot => {
+                data.push({
+                    id: childSnapshot.key,
+                    ...childSnapshot.val()
+                });
             });
-            return { success: true, data: documents };
+            return { success: true, data: data };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     
-    // Query documents
-    queryDocuments: async (collection, field, operator, value) => {
+    // Query data (orderBy, limitTo, startAt, endAt, equalTo)
+    queryData: async (path, orderByField, limitCount = null, startAtValue = null, equalToValue = null) => {
         try {
-            const snapshot = await db.collection(collection)
-                .where(field, operator, value)
-                .get();
-            const documents = [];
-            snapshot.forEach(doc => {
-                documents.push({ id: doc.id, ...doc.data() });
+            let ref = database.ref(path);
+            
+            if (orderByField) {
+                ref = ref.orderByChild(orderByField);
+            }
+            
+            if (equalToValue !== null) {
+                ref = ref.equalTo(equalToValue);
+            }
+            
+            if (startAtValue !== null) {
+                ref = ref.startAt(startAtValue);
+            }
+            
+            if (limitCount) {
+                ref = ref.limitToFirst(limitCount);
+            }
+            
+            const snapshot = await ref.once('value');
+            const data = [];
+            snapshot.forEach(childSnapshot => {
+                data.push({
+                    id: childSnapshot.key,
+                    ...childSnapshot.val()
+                });
             });
-            return { success: true, data: documents };
+            return { success: true, data: data };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     
-    // Real-time listener
-    listenToCollection: (collection, callback) => {
-        return db.collection(collection).onSnapshot(snapshot => {
-            const documents = [];
-            snapshot.forEach(doc => {
-                documents.push({ id: doc.id, ...doc.data() });
-            });
-            callback(documents);
+    // Real-time listener for a path
+    listenToPath: (path, callback) => {
+        const ref = database.ref(path);
+        ref.on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const data = [];
+                snapshot.forEach(childSnapshot => {
+                    data.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                callback(data);
+            } else {
+                callback([]);
+            }
         });
+        return () => ref.off('value');
+    },
+    
+    // Listen to child added
+    listenToChildAdded: (path, callback) => {
+        const ref = database.ref(path);
+        ref.on('child_added', (snapshot) => {
+            callback({
+                id: snapshot.key,
+                ...snapshot.val()
+            });
+        });
+        return () => ref.off('child_added');
+    },
+    
+    // Listen to child changed
+    listenToChildChanged: (path, callback) => {
+        const ref = database.ref(path);
+        ref.on('child_changed', (snapshot) => {
+            callback({
+                id: snapshot.key,
+                ...snapshot.val()
+            });
+        });
+        return () => ref.off('child_changed');
+    },
+    
+    // Listen to child removed
+    listenToChildRemoved: (path, callback) => {
+        const ref = database.ref(path);
+        ref.on('child_removed', (snapshot) => {
+            callback(snapshot.key);
+        });
+        return () => ref.off('child_removed');
+    },
+    
+    // Transaction (for atomic operations like counters)
+    runTransaction: async (path, updateFunction) => {
+        try {
+            const result = await database.ref(path).transaction(updateFunction);
+            return { success: true, data: result.snapshot.val() };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
     }
 };
 
@@ -218,7 +320,7 @@ window.Firebase = {
     auth: FirebaseAuth,
     db: FirebaseDB,
     storage: FirebaseStorage,
-    firestore: db,
+    database: database, // Realtime Database instance
     authentication: auth,
     storageInstance: storage
 };

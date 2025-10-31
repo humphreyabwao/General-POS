@@ -4,13 +4,27 @@
 
 // Initialize Inventory
 function initializeInventory() {
-    loadInventoryStats();
-    loadInventoryTable();
-    populateFilterDropdowns();
     initializeInventoryControls();
     
-    // Refresh stats every minute
-    setInterval(loadInventoryStats, 60000);
+    // Listen to real-time state changes
+    StateEvents.on('products:updated', () => {
+        loadInventoryStats();
+        loadInventoryTable();
+        populateFilterDropdowns();
+    });
+    
+    StateEvents.on('sync:ready', () => {
+        loadInventoryStats();
+        loadInventoryTable();
+        populateFilterDropdowns();
+    });
+    
+    // Initial load if data is already available
+    if (AppState.isInitialized) {
+        loadInventoryStats();
+        loadInventoryTable();
+        populateFilterDropdowns();
+    }
 }
 
 // Initialize Inventory Controls
@@ -100,56 +114,19 @@ function debounce(func, wait) {
 // Load Inventory Stats
 async function loadInventoryStats() {
     try {
-        // Load inventory items from Firebase/localStorage
-        const inventoryItems = JSON.parse(localStorage.getItem('inventoryItems') || '[]');
+        const stats = AppState.stats;
         
-        // Calculate Total Stock Value
-        let totalValue = 0;
-        let totalItems = 0;
-        let lowStockCount = 0;
-        let outOfStockCount = 0;
-        let expiredCount = 0;
-        
-        const today = new Date();
-        
-        inventoryItems.forEach(item => {
-            const quantity = item.quantity || 0;
-            const price = item.price || 0;
-            const reorderLevel = item.reorderLevel || 10;
-            const expiryDate = item.expiryDate ? new Date(item.expiryDate) : null;
-            
-            // Total value and items
-            totalValue += quantity * price;
-            totalItems += quantity;
-            
-            // Low stock check
-            if (quantity > 0 && quantity <= reorderLevel) {
-                lowStockCount++;
-            }
-            
-            // Out of stock check
-            if (quantity === 0) {
-                outOfStockCount++;
-            }
-            
-            // Expired items check
-            if (expiryDate && expiryDate < today && quantity > 0) {
-                expiredCount++;
-            }
-        });
+        // Calculate total items
+        const totalItems = AppState.products.reduce((sum, p) => sum + (p.quantity || 0), 0);
         
         // Update stat cards
-        updateInventoryStat('inventoryTotalValue', totalValue);
+        updateInventoryStat('inventoryTotalValue', stats.stockValue);
         updateInventoryStat('inventoryTotalItems', totalItems);
-        updateInventoryStat('inventoryLowStock', lowStockCount);
-        updateInventoryStat('inventoryOutStock', outOfStockCount + expiredCount);
-        updateInventoryStat('inventoryOutStockMeta', outOfStockCount, expiredCount);
+        updateInventoryStat('inventoryLowStock', stats.lowStockCount);
+        updateInventoryStat('inventoryOutStock', stats.outOfStockCount);
+        updateInventoryStat('inventoryOutStockMeta', stats.outOfStockCount, 0);
         
-        // Update dashboard stock value if on dashboard
-        const dashboardStockValue = document.getElementById('stockValue');
-        if (dashboardStockValue && window.Dashboard) {
-            dashboardStockValue.textContent = window.Dashboard.formatKenyaShillings(totalValue);
-        }
+        console.log('📦 Inventory stats updated');
         
     } catch (error) {
         console.error('Error loading inventory stats:', error);
@@ -313,13 +290,12 @@ function deleteInventoryItem(itemId) {
 
 // Get Inventory Item by ID
 function getInventoryItem(itemId) {
-    const inventoryItems = JSON.parse(localStorage.getItem('inventoryItems') || '[]');
-    return inventoryItems.find(item => item.id === itemId);
+    return AppState.products.find(item => item.id === itemId);
 }
 
 // Get All Inventory Items
 function getAllInventoryItems() {
-    return JSON.parse(localStorage.getItem('inventoryItems') || '[]');
+    return AppState.products || [];
 }
 
 // Get Low Stock Items
@@ -352,7 +328,7 @@ function getExpiredItems() {
 
 // Load Inventory Table with Filters
 function loadInventoryTable() {
-    const items = getAllInventoryItems();
+    const items = AppState.products;
     const tbody = document.getElementById('inventoryTableBody');
     
     if (!tbody) return;
@@ -454,19 +430,19 @@ function loadInventoryTable() {
                 <td>${addedDate}</td>
                 <td>
                     <div class="table-actions">
-                        <button class="table-action-btn view" onclick="window.Inventory.viewItem(${item.id})" title="View Details">
+                        <button class="table-action-btn view" onclick="window.Inventory.viewItem('${item.id}')" title="View Details">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
-                        <button class="table-action-btn edit" onclick="window.Inventory.editItem(${item.id})" title="Edit Product">
+                        <button class="table-action-btn edit" onclick="window.Inventory.editItem('${item.id}')" title="Edit Product">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </button>
-                        <button class="table-action-btn delete" onclick="window.Inventory.confirmDelete(${item.id}, '${item.name?.replace(/'/g, "\\'")}', '${item.barcode?.replace(/'/g, "\\'")}', ${item.quantity || 0})" title="Delete Product">
+                        <button class="table-action-btn delete" onclick="window.Inventory.confirmDelete('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}', '${(item.barcode || '').replace(/'/g, "\\'")}', ${item.quantity || 0})" title="Delete Product">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                             </svg>
@@ -663,7 +639,7 @@ function viewItem(itemId) {
     const footer = modal.querySelector('.modal-footer');
     footer.innerHTML = `
         <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
-        <button class="btn-primary" onclick="this.closest('.modal-overlay').remove(); window.Inventory.editItem(${itemId})">Edit Product</button>
+        <button class="btn-primary" onclick="this.closest('.modal-overlay').remove(); window.Inventory.editItem('${itemId}')">Edit Product</button>
     `;
     
     document.body.appendChild(modal);
@@ -748,14 +724,14 @@ function editItem(itemId) {
     const footer = modal.querySelector('.modal-footer');
     footer.innerHTML = `
         <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-primary" onclick="window.Inventory.saveEdit(${itemId})">Save Changes</button>
+        <button class="btn-primary" onclick="window.Inventory.saveEdit('${itemId}')">Save Changes</button>
     `;
     
     document.body.appendChild(modal);
 }
 
 // Save Edit
-function saveEdit(itemId) {
+async function saveEdit(itemId) {
     const updateData = {
         name: document.getElementById('edit_productName').value.trim(),
         category: document.getElementById('edit_productCategory').value,
@@ -770,16 +746,18 @@ function saveEdit(itemId) {
     };
     
     if (!updateData.name || !updateData.price) {
-        alert('Please fill in all required fields.');
+        showToast('Please fill in all required fields.', 'error');
         return;
     }
     
-    const result = updateInventoryItem(itemId, updateData);
+    // Use global updateProduct function
+    const result = await window.updateProduct(itemId, updateData);
     
     if (result.success) {
         document.querySelector('.modal-overlay').remove();
-        loadInventoryTable();
-        showSuccessNotification(`Product "${updateData.name}" updated successfully!`);
+        showToast(`Product "${updateData.name}" updated successfully!`, 'success');
+    } else {
+        showToast(`Failed to update product: ${result.error}`, 'error');
     }
 }
 
@@ -808,19 +786,21 @@ function confirmDelete(itemId, itemName, barcode, quantity) {
     const footer = modal.querySelector('.modal-footer');
     footer.innerHTML = `
         <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-danger" onclick="window.Inventory.executeDelete(${itemId}, '${itemName.replace(/'/g, "\\'")}')">Delete Product</button>
+        <button class="btn-danger" onclick="window.Inventory.executeDelete('${itemId}', '${itemName.replace(/'/g, "\\'")}')">Delete Product</button>
     `;
     
     document.body.appendChild(modal);
 }
 
 // Execute Delete
-function executeDelete(itemId, itemName) {
-    const result = deleteInventoryItem(itemId);
+async function executeDelete(itemId, itemName) {
+    // Use global deleteProduct function
+    const result = await window.deleteProduct(itemId);
     if (result.success) {
         document.querySelector('.modal-overlay').remove();
-        loadInventoryTable();
-        showSuccessNotification(`Product "${itemName}" deleted successfully!`);
+        showToast(`Product "${itemName}" deleted successfully!`, 'success');
+    } else {
+        showToast(`Failed to delete product: ${result.error}`, 'error');
     }
 }
 

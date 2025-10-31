@@ -288,11 +288,15 @@ async function handleFormSubmit(e) {
             throw new Error('Please fill in all required fields.');
         }
         
-        // Add item to inventory
-        const newItem = window.Inventory.addItem(formData);
+        // Add item to Firebase
+        const result = await addProduct(formData);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to add product');
+        }
         
         // Show success message
-        showSuccessMessage(`Product "${formData.name}" added successfully!`);
+        showToast(`Product "${formData.name}" added successfully!`, 'success');
         
         // Reset form
         document.getElementById('addItemForm').reset();

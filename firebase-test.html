@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Test - Vendly POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ccc;
+        }
+        
+        .status-card.success {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .status-card.error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .status-card.warning {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        
+        .status-card h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-card p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .console {
+            background: #1e293b;
+            color: #10b981;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        
+        .console-error {
+            color: #ef4444;
+        }
+        
+        .console-warning {
+            color: #f59e0b;
+        }
+        
+        .console-info {
+            color: #3b82f6;
+        }
+        
+        .link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .link:hover {
+            text-decoration: underline;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Connection Test</h1>
+        <p class="subtitle">Vendly POS - Realtime Database Verification</p>
+        
+        <div class="status-card" id="connectionStatus">
+            <h3>
+                <span class="icon">⏳</span>
+                Checking Firebase Connection...
+            </h3>
+            <p>Initializing Firebase SDK and testing connection...</p>
+        </div>
+        
+        <div class="status-card" id="databaseStatus" style="display:none;">
+            <h3>
+                <span class="icon">📊</span>
+                Database Status
+            </h3>
+            <p id="databaseMessage">Checking database...</p>
+        </div>
+        
+        <div class="status-card warning" id="setupInstructions" style="display:none;">
+            <h3>
+                <span class="icon">⚠️</span>
+                Setup Required
+            </h3>
+            <p>
+                Your Firebase Realtime Database needs to be created. Follow these steps:
+                <br><br>
+                1. Go to <a href="https://console.firebase.google.com/project/vendly-7e566/database" target="_blank" class="link">Firebase Console</a>
+                <br>
+                2. Click on "Realtime Database" in the left sidebar
+                <br>
+                3. Click "Create Database"
+                <br>
+                4. Choose location: <strong>us-central1</strong> (or your preferred region)
+                <br>
+                5. Start in <strong>test mode</strong> (we'll secure it later)
+                <br>
+                6. Click "Enable"
+                <br><br>
+                Then refresh this page to test again.
+            </p>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button onclick="testConnection()">🔄 Test Connection</button>
+            <button onclick="testWrite()" class="btn-success" id="testWriteBtn" disabled>📝 Test Write Data</button>
+            <button onclick="testRead()" class="btn-success" id="testReadBtn" disabled>📖 Test Read Data</button>
+            <button onclick="clearConsole()" class="btn-danger">🗑️ Clear Console</button>
+        </div>
+        
+        <div class="console" id="console">
+            <div>Console Output:</div>
+            <div>Waiting for test...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrZMtOLrTLOwnjAyY6lhjI73ftkPIIyJg",
+            authDomain: "vendly-7e566.firebaseapp.com",
+            databaseURL: "https://vendly-7e566-default-rtdb.firebaseio.com",
+            projectId: "vendly-7e566",
+            storageBucket: "vendly-7e566.firebasestorage.app",
+            messagingSenderId: "736329773393",
+            appId: "1:736329773393:web:4fcff1e7117fc55d21e370",
+            measurementId: "G-ENHRRHHP7Q"
+        };
+
+        let database = null;
+        let isConnected = false;
+
+        // Initialize Firebase
+        function initFirebase() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                log('✅ Firebase SDK initialized', 'success');
+                log('📍 Database URL: ' + firebaseConfig.databaseURL, 'info');
+                
+                // Monitor connection
+                const connectedRef = database.ref('.info/connected');
+                connectedRef.on('value', (snapshot) => {
+                    isConnected = snapshot.val() === true;
+                    
+                    if (isConnected) {
+                        log('✅ Connected to Firebase Realtime Database!', 'success');
+                        updateConnectionStatus(true);
+                        document.getElementById('testWriteBtn').disabled = false;
+                        document.getElementById('testReadBtn').disabled = false;
+                    } else {
+                        log('❌ Disconnected from Firebase', 'error');
+                        updateConnectionStatus(false);
+                    }
+                });
+                
+            } catch (error) {
+                log('❌ Firebase initialization error: ' + error.message, 'error');
+                updateConnectionStatus(false, error.message);
+            }
+        }
+
+        function updateConnectionStatus(connected, error = null) {
+            const statusCard = document.getElementById('connectionStatus');
+            const databaseCard = document.getElementById('databaseStatus');
+            const setupCard = document.getElementById('setupInstructions');
+            
+            if (connected) {
+                statusCard.className = 'status-card success';
+                statusCard.innerHTML = `
+                    <h3><span class="icon">✅</span>Firebase Connected</h3>
+                    <p>Successfully connected to Firebase Realtime Database. You can now read and write data.</p>
+                `;
+                databaseCard.style.display = 'block';
+                databaseCard.className = 'status-card success';
+                document.getElementById('databaseMessage').textContent = 'Database is ready and accessible.';
+                setupCard.style.display = 'none';
+            } else {
+                statusCard.className = 'status-card error';
+                statusCard.innerHTML = `
+                    <h3><span class="icon">❌</span>Connection Failed</h3>
+                    <p>${error || 'Unable to connect to Firebase Realtime Database. The database may not be created yet.'}</p>
+                `;
+                databaseCard.style.display = 'block';
+                databaseCard.className = 'status-card error';
+                document.getElementById('databaseMessage').textContent = 'Database not accessible. Please create it first.';
+                setupCard.style.display = 'block';
+            }
+        }
+
+        async function testConnection() {
+            log('🔄 Testing Firebase connection...', 'info');
+            
+            try {
+                const testRef = database.ref('.info/connected');
+                const snapshot = await testRef.once('value');
+                
+                if (snapshot.val() === true) {
+                    log('✅ Connection test successful!', 'success');
+                } else {
+                    log('❌ Connection test failed', 'error');
+                }
+            } catch (error) {
+                log('❌ Connection test error: ' + error.message, 'error');
+                log('💡 Tip: Make sure Realtime Database is created in Firebase Console', 'warning');
+            }
+        }
+
+        async function testWrite() {
+            log('📝 Testing write operation...', 'info');
+            
+            try {
+                const testRef = database.ref('test');
+                const testData = {
+                    message: 'Hello from Vendly POS!',
+                    timestamp: Date.now(),
+                    testNumber: Math.floor(Math.random() * 1000)
+                };
+                
+                await testRef.set(testData);
+                log('✅ Write test successful! Data written to /test', 'success');
+                log('📊 Data: ' + JSON.stringify(testData, null, 2), 'info');
+                log('🔗 View in console: https://console.firebase.google.com/project/vendly-7e566/database/vendly-7e566-default-rtdb/data/~2Ftest', 'info');
+                
+            } catch (error) {
+                log('❌ Write test failed: ' + error.message, 'error');
+                
+                if (error.message.includes('Permission denied')) {
+                    log('⚠️ Permission denied. Update your security rules:', 'warning');
+                    log('{ "rules": { ".read": true, ".write": true } }', 'info');
+                }
+            }
+        }
+
+        async function testRead() {
+            log('📖 Testing read operation...', 'info');
+            
+            try {
+                const testRef = database.ref('test');
+                const snapshot = await testRef.once('value');
+                
+                if (snapshot.exists()) {
+                    log('✅ Read test successful!', 'success');
+                    log('📊 Data read from /test:', 'info');
+                    log(JSON.stringify(snapshot.val(), null, 2), 'info');
+                } else {
+                    log('⚠️ No data found at /test. Try writing data first.', 'warning');
+                }
+                
+            } catch (error) {
+                log('❌ Read test failed: ' + error.message, 'error');
+            }
+        }
+
+        function log(message, type = 'normal') {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'console-error' : 
+                            type === 'warning' ? 'console-warning' : 
+                            type === 'success' ? '' :
+                            type === 'info' ? 'console-info' : '';
+            
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = `[${timestamp}] ${message}`;
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div>Console cleared.</div>';
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('🚀 Starting Firebase connection test...', 'info');
+            initFirebase();
+        });
+    </script>
+</body>
+</html>

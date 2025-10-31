@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeProfileDropdown();
     initializeNavigation();
     initializeNotifications();
+    
+    // Initialize real-time Firebase sync
+    initializeRealtimeSync();
+    
+    // Show loading message
+    showToast('Connecting to database...', 'info', 2000);
 });
 
 // ===========================
@@ -329,14 +335,15 @@ function showToast(message, type = 'info') {
 }
 
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
         style: 'currency',
-        currency: 'USD'
-    }).format(amount);
+        currency: 'KES',
+        minimumFractionDigits: 2
+    }).format(amount || 0).replace('KES', 'KSh');
 }
 
 function formatDate(date) {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('en-KE', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
@@ -344,7 +351,7 @@ function formatDate(date) {
 }
 
 function formatDateTime(date) {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('en-KE', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

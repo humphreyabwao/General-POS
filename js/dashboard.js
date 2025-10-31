@@ -7,15 +7,33 @@ function initializeDashboard() {
     updateGreeting();
     updateDate();
     loadBranches();
-    loadDashboardStats();
-    initializeDashboardSearch();
-    loadRecentActivity();
     
     // Update date every minute
     setInterval(updateDate, 60000);
     
-    // Update activity every 30 seconds
-    setInterval(loadRecentActivity, 30000);
+    // Listen to real-time state changes
+    StateEvents.on('stats:updated', updateDashboardStats);
+    StateEvents.on('sales:updated', loadRecentActivity);
+    StateEvents.on('activity:added', loadRecentActivity);
+    StateEvents.on('sync:ready', () => {
+        loadDashboardStats();
+        loadRecentActivity();
+        initializeDashboardSearch();
+    });
+    
+    // Initial load if data is already available
+    if (AppState.isInitialized) {
+        loadDashboardStats();
+        loadRecentActivity();
+        initializeDashboardSearch();
+    }
+    
+    // Force initial stats update
+    setTimeout(() => {
+        if (AppState.stats) {
+            updateDashboardStats(AppState.stats);
+        }
+    }, 1000);
 }
 
 // Update Greeting
@@ -88,42 +106,20 @@ async function loadBranches() {
 
 // Load Dashboard Stats
 async function loadDashboardStats() {
-    const selectedBranch = document.getElementById('branchSelect').value;
+    updateDashboardStats(AppState.stats);
+}
+
+// Update Dashboard Stats (Real-time)
+function updateDashboardStats(stats) {
+    // Update stat cards
+    updateStatCard('todaysSales', formatCurrency(stats.todayRevenue), false);
+    updateStatCard('todaysExpenses', formatCurrency(stats.todayExpenses), false);
+    updateStatCard('profitLoss', formatCurrency(stats.profitLoss), false, true);
+    updateStatCard('totalCustomers', stats.totalCustomers, false);
+    updateStatCard('stockValue', formatCurrency(stats.stockValue), false);
+    updateStatCard('pendingB2B', 0, false); // TODO: Implement B2B orders
     
-    // Add loading state
-    document.querySelectorAll('.stat-card').forEach(card => {
-        card.classList.add('loading');
-    });
-    
-    try {
-        // Load stats from Firebase
-        // For now, initialize with zeros
-        const stats = {
-            todaysSales: 0,
-            todaysExpenses: 0,
-            profitLoss: 0,
-            totalCustomers: 0,
-            stockValue: 0,
-            pendingB2B: 0
-        };
-        
-        // Update stat cards
-        updateStatCard('todaysSales', stats.todaysSales, true);
-        updateStatCard('todaysExpenses', stats.todaysExpenses, true);
-        updateStatCard('profitLoss', stats.profitLoss, true, true);
-        updateStatCard('totalCustomers', stats.totalCustomers, false);
-        updateStatCard('stockValue', stats.stockValue, true);
-        updateStatCard('pendingB2B', stats.pendingB2B, false);
-        
-    } catch (error) {
-        console.error('Error loading dashboard stats:', error);
-        window.POS.showToast('Error loading dashboard statistics', 'error');
-    } finally {
-        // Remove loading state
-        document.querySelectorAll('.stat-card').forEach(card => {
-            card.classList.remove('loading');
-        });
-    }
+    console.log('📊 Dashboard stats updated:', stats);
 }
 
 // Update Stat Card
@@ -132,22 +128,16 @@ function updateStatCard(elementId, value, isCurrency = false, isProfitLoss = fal
     
     if (!element) return;
     
-    let displayValue;
-    
-    if (isCurrency) {
-        displayValue = formatKenyaShillings(value);
-    } else {
-        displayValue = formatNumber(value);
-    }
-    
-    element.textContent = displayValue;
+    element.textContent = value;
     
     // Handle profit/loss color
     if (isProfitLoss) {
         element.classList.remove('positive', 'negative');
-        if (value > 0) {
+        // Extract numeric value from formatted string
+        const numericValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
+        if (numericValue > 0) {
             element.classList.add('positive');
-        } else if (value < 0) {
+        } else if (numericValue < 0) {
             element.classList.add('negative');
         }
     }
