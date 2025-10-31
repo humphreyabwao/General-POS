@@ -120,21 +120,34 @@ function initializeNavigation() {
             const parentLi = toggle.parentElement;
             const page = toggle.getAttribute('data-page');
             
+            // Check if submenu is currently closed (about to open)
+            const isCurrentlyClosed = !parentLi.classList.contains('open');
+            
             // Toggle submenu
             parentLi.classList.toggle('open');
             
-            // If clicking on admin panel, show admin module
-            if (!parentLi.classList.contains('open')) {
+            // If opening the submenu OR clicking when already open, navigate to the main module
+            // Special handling for POS - always navigate to pos-new-sale
+            if (isCurrentlyClosed) {
                 // Update active nav item
                 document.querySelector('.sidebar-nav li.active')?.classList.remove('active');
                 parentLi.classList.add('active');
                 
+                // For POS, navigate directly to pos-new-sale
+                const targetPage = page === 'pos' ? 'pos-new-sale' : page;
+                
                 // Show corresponding module
                 modules.forEach(module => module.classList.remove('active'));
-                document.getElementById(`${page}-module`)?.classList.add('active');
-                
-                // Save current page
-                localStorage.setItem('currentPage', page);
+                const targetModule = document.getElementById(`${targetPage}-module`);
+                if (targetModule) {
+                    targetModule.classList.add('active');
+                    
+                    // Initialize module-specific functionality
+                    initializeModulePage(targetPage);
+                    
+                    // Save current page
+                    localStorage.setItem('currentPage', targetPage);
+                }
             }
         });
     });
@@ -160,6 +173,9 @@ function initializeNavigation() {
             // Show corresponding module
             modules.forEach(module => module.classList.remove('active'));
             document.getElementById(`${page}-module`)?.classList.add('active');
+            
+            // Initialize module-specific functionality
+            initializeModulePage(page);
             
             // Save current page
             localStorage.setItem('currentPage', page);
@@ -257,6 +273,49 @@ function handleLogout() {
             localStorage.clear();
             window.location.reload();
         }
+    }
+}
+
+// ===========================
+// Module Initialization
+// ===========================
+function initializeModulePage(page) {
+    // Initialize specific module functionality based on page
+    switch(page) {
+        case 'dashboard':
+            if (typeof initializeDashboard === 'function') {
+                initializeDashboard();
+            }
+            break;
+        case 'inventory':
+            if (typeof initializeInventory === 'function') {
+                initializeInventory();
+            }
+            break;
+        case 'inventory-add-item':
+            if (typeof initializeAddItemForm === 'function') {
+                initializeAddItemForm();
+            }
+            break;
+        case 'pos-new-sale':
+        case 'pos':
+            if (typeof initializePOS === 'function') {
+                initializePOS();
+                // Update cashier and branch info
+                const cashierName = document.getElementById('posCashierName');
+                const branchName = document.getElementById('posBranchName');
+                
+                if (cashierName) {
+                    cashierName.textContent = localStorage.getItem('userName') || 'User';
+                }
+                if (branchName) {
+                    branchName.textContent = localStorage.getItem('selectedBranch') || 'Main Branch';
+                }
+            }
+            break;
+        default:
+            // Other modules can be initialized here
+            break;
     }
 }
 
