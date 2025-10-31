@@ -359,10 +359,10 @@ function loadInventoryTable() {
         if (supplierFilter && item.supplier !== supplierFilter) return false;
         
         // Stock status filter
-        if (stockFilter) {
-            const status = getStockStatus(item);
-            if (status !== stockFilter) return false;
-        }
+            if (stockFilter) {
+                const status = getInventoryStockStatus(item);
+                if (status !== stockFilter) return false;
+            }
         
         // Date range filter
         if (dateFrom) {
@@ -407,15 +407,27 @@ function loadInventoryTable() {
     filteredItems.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
     tbody.innerHTML = filteredItems.map(item => {
-        const status = getStockStatus(item);
-        const statusClass = getStatusClass(status);
-        const statusText = getStatusText(status);
+    const status = getInventoryStockStatus(item);
+    const statusClass = getInventoryStatusClass(status);
+    const statusText = getInventoryStatusText(status);
         const value = (item.quantity || 0) * (item.price || 0);
-        const addedDate = new Date(item.addedAt).toLocaleDateString('en-KE', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-        });
+        
+        // Format date safely - handle missing or invalid dates
+        let addedDate = 'N/A';
+        if (item.addedAt) {
+            try {
+                const date = new Date(item.addedAt);
+                if (!isNaN(date.getTime())) {
+                    addedDate = date.toLocaleDateString('en-KE', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                }
+            } catch (e) {
+                console.warn('Invalid date for item:', item.id, item.addedAt);
+            }
+        }
         
         return `
             <tr>
@@ -455,37 +467,68 @@ function loadInventoryTable() {
 }
 
 // Get Stock Status
-function getStockStatus(item) {
-    const quantity = item.quantity || 0;
-    const reorderLevel = item.reorderLevel || 10;
+function getInventoryStockStatus(item) {
+    if (!item) {
+        console.warn('⚠️ getInventoryStockStatus: item is null/undefined');
+        return 'unknown';
+    }
+    
+    // Ensure quantity is a valid number - handle both string and number types
+    let quantity = 0;
+    if (typeof item.quantity === 'number') {
+        quantity = item.quantity;
+    } else if (typeof item.quantity === 'string') {
+        quantity = parseInt(item.quantity) || 0;
+    } else if (item.quantity === undefined || item.quantity === null) {
+        console.warn(`⚠️ ${item.name}: quantity is undefined/null, defaulting to 0`);
+        quantity = 0;
+    }
+    
+    let reorderLevel = 10; // default
+    if (typeof item.reorderLevel === 'number') {
+        reorderLevel = item.reorderLevel;
+    } else if (typeof item.reorderLevel === 'string') {
+        reorderLevel = parseInt(item.reorderLevel) || 10;
+    }
+    
     const today = new Date();
     
     // Check if expired
     if (item.expiryDate) {
-        const expiryDate = new Date(item.expiryDate);
-        if (expiryDate < today && quantity > 0) {
-            return 'expired';
+        try {
+            const expiryDate = new Date(item.expiryDate);
+            if (!isNaN(expiryDate.getTime()) && expiryDate < today && quantity > 0) {
+                return 'expired';
+            }
+        } catch (e) {
+            console.warn('Invalid expiry date for item:', item.id, item.expiryDate);
         }
     }
     
     // Check stock levels
-    if (quantity === 0) return 'out';
-    if (quantity <= reorderLevel) return 'low';
+    if (quantity === 0) {
+        return 'out';
+    }
+    if (quantity <= reorderLevel) {
+        return 'low';
+    }
     return 'ok';
 }
 
 // Get Status Class
-function getStatusClass(status) {
-    return status; // ok, low, out, expired
+function getInventoryStatusClass(status) {
+    const validStatuses = ['ok', 'low', 'out', 'expired', 'unknown'];
+    return validStatuses.includes(status) ? status : 'unknown';
 }
 
 // Get Status Text
-function getStatusText(status) {
+function getInventoryStatusText(status) {
     const statusMap = {
         'ok': 'In Stock',
         'low': 'Low Stock',
         'out': 'Out of Stock',
-        'expired': 'Expired'
+        'expired': 'Expired',
+        'unknown': 'Unknown'
     };
     return statusMap[status] || 'Unknown';
 }
@@ -521,9 +564,9 @@ function viewItem(itemId) {
     const modal = createModal('View Product Details');
     const content = modal.querySelector('.modal-body');
     
-    const status = getStockStatus(item);
-    const statusClass = getStatusClass(status);
-    const statusText = getStatusText(status);
+    const status = getInventoryStockStatus(item);
+    const statusClass = getInventoryStatusClass(status);
+    const statusText = getInventoryStatusText(status);
     const value = (item.quantity || 0) * (item.price || 0);
     const profit = (item.price || 0) - (item.cost || 0);
     const margin = item.cost > 0 ? ((profit / item.price) * 100).toFixed(2) : 0;
@@ -924,8 +967,8 @@ function exportInventoryToCSV() {
     
     // CSV Rows
     const rows = items.map(item => {
-        const status = getStockStatus(item);
-        const statusText = getStatusText(status);
+        const status = getInventoryStockStatus(item);
+        const statusText = getInventoryStatusText(status);
         const value = (item.quantity || 0) * (item.price || 0);
         const addedDate = new Date(item.addedAt).toLocaleDateString('en-KE');
         const expiryDate = item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-KE') : 'N/A';
@@ -993,8 +1036,8 @@ function exportInventoryToExcel() {
     const headers = ['Product Name', 'SKU/Barcode', 'Category', 'Quantity', 'Price', 'Cost', 'Value', 'Supplier', 'Reorder Level', 'Status', 'Expiry Date', 'Date Added'];
     
     const rows = items.map(item => {
-        const status = getStockStatus(item);
-        const statusText = getStatusText(status);
+        const status = getInventoryStockStatus(item);
+        const statusText = getInventoryStatusText(status);
         const value = (item.quantity || 0) * (item.price || 0);
         const addedDate = new Date(item.addedAt).toLocaleDateString('en-KE');
         const expiryDate = item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-KE') : 'N/A';
@@ -1100,8 +1143,8 @@ function exportInventoryToPDF() {
     const headers = ['Product', 'SKU', 'Category', 'Qty', 'Price', 'Value', 'Supplier', 'Status'];
     
     const rows = items.map(item => {
-        const status = getStockStatus(item);
-        const statusText = getStatusText(status);
+        const status = getInventoryStockStatus(item);
+        const statusText = getInventoryStatusText(status);
         const value = (item.quantity || 0) * (item.price || 0);
         
         return {

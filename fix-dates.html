@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Products Dates - Vendly POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            display: block;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            display: block;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            display: block;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        #console.active {
+            display: block;
+        }
+        
+        .console-line {
+            margin-bottom: 5px;
+        }
+        
+        .console-line.success { color: #4caf50; }
+        .console-line.error { color: #f44336; }
+        .console-line.info { color: #2196f3; }
+        .console-line.warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Products Dates</h1>
+        <p class="subtitle">Migration tool to add missing dates to inventory products</p>
+        
+        <div class="info-box">
+            <h3>ℹ️ What this does:</h3>
+            <p>This tool will scan all products in your inventory and add missing <strong>addedAt</strong> and <strong>updatedAt</strong> timestamps. This ensures that dates display correctly in the inventory table.</p>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <button id="startBtn" onclick="startMigration()">
+            Start Migration
+        </button>
+        
+        <div id="console" class="console"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/global-state.js"></script>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const statusDiv = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            consoleDiv.classList.add('active');
+        }
+        
+        function updateStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        async function startMigration() {
+            startBtn.disabled = true;
+            consoleDiv.innerHTML = '';
+            updateStatus('🔄 Initializing migration...', 'loading');
+            log('Starting products date migration...', 'info');
+            
+            // Wait for AppState to initialize
+            let retries = 0;
+            while ((!AppState || !AppState.isInitialized) && retries < 30) {
+                log(`Waiting for AppState to initialize... (${retries + 1}/30)`, 'warning');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                retries++;
+            }
+            
+            if (!AppState || !AppState.isInitialized) {
+                updateStatus('❌ Failed to initialize. Please refresh and try again.', 'error');
+                log('Error: AppState failed to initialize', 'error');
+                startBtn.disabled = false;
+                return;
+            }
+            
+            log(`✅ AppState initialized with ${AppState.products.length} products`, 'success');
+            updateStatus(`🔄 Processing ${AppState.products.length} products...`, 'loading');
+            
+            let fixedCount = 0;
+            let alreadyOkCount = 0;
+            const now = new Date().toISOString();
+            
+            for (const product of AppState.products) {
+                let needsUpdate = false;
+                const updates = {};
+                
+                // Check addedAt
+                if (!product.addedAt) {
+                    updates.addedAt = now;
+                    needsUpdate = true;
+                } else {
+                    const date = new Date(product.addedAt);
+                    if (isNaN(date.getTime())) {
+                        updates.addedAt = now;
+                        needsUpdate = true;
+                    }
+                }
+                
+                // Check updatedAt
+                if (!product.updatedAt) {
+                    updates.updatedAt = now;
+                    needsUpdate = true;
+                } else {
+                    const date = new Date(product.updatedAt);
+                    if (isNaN(date.getTime())) {
+                        updates.updatedAt = now;
+                        needsUpdate = true;
+                    }
+                }
+                
+                if (needsUpdate) {
+                    try {
+                        await Firebase.db.updateData(`products/${product.id}`, updates);
+                        fixedCount++;
+                        log(`✅ Fixed: ${product.name}`, 'success');
+                    } catch (error) {
+                        log(`❌ Error fixing ${product.name}: ${error.message}`, 'error');
+                    }
+                } else {
+                    alreadyOkCount++;
+                }
+            }
+            
+            log('', 'info');
+            log('═══════════════════════════════════', 'info');
+            log(`✅ Fixed products: ${fixedCount}`, 'success');
+            log(`👍 Already OK: ${alreadyOkCount}`, 'info');
+            log(`📦 Total products: ${AppState.products.length}`, 'info');
+            log('═══════════════════════════════════', 'info');
+            
+            updateStatus(`✅ Migration complete! Fixed ${fixedCount} products.`, 'success');
+            
+            setTimeout(() => {
+                log('🔄 Reloading data...', 'info');
+                window.location.href = 'index.html';
+            }, 3000);
+        }
+        
+        // Auto-log initialization status
+        window.addEventListener('load', () => {
+            log('Page loaded, waiting for Firebase...', 'info');
+            
+            const checkInit = setInterval(() => {
+                if (AppState && AppState.isInitialized) {
+                    log(`✅ Ready! Found ${AppState.products.length} products`, 'success');
+                    clearInterval(checkInit);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

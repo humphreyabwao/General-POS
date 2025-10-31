@@ -295,8 +295,7 @@ async function handleFormSubmit(e) {
             throw new Error(result.error || 'Failed to add product');
         }
         
-        // Show success message
-        showToast(`Product "${formData.name}" added successfully!`, 'success');
+        // Success message is shown by addProduct function
         
         // Reset form
         document.getElementById('addItemForm').reset();

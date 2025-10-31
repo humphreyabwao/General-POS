@@ -126,6 +126,11 @@ function calculateStats() {
     AppState.stats.todayTransactions = todaySales.length;
     AppState.stats.todayRevenue = todaySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
     
+    // Calculate total items sold today
+    AppState.stats.todaySales = todaySales.reduce((sum, sale) => {
+        return sum + (sale.items || []).reduce((itemSum, item) => itemSum + (item.quantity || 0), 0);
+    }, 0);
+    
     // Calculate today's expenses
     const todayExpenses = AppState.expenses.filter(expense => {
         const expenseDate = new Date(expense.createdAt || expense.date);
@@ -247,7 +252,9 @@ async function addProduct(productData) {
             ...productData,
             quantity: productData.quantity || 0,
             reorderLevel: productData.reorderLevel || 10,
-            status: 'active'
+            status: 'active',
+            addedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         });
         
         if (result.success) {
@@ -257,7 +264,8 @@ async function addProduct(productData) {
             // Log activity
             logActivity('product', `Added product: ${productData.name}`, productData.addedBy || 'Admin', 'Inventory', `SKU: ${productData.sku}, Qty: ${productData.quantity}`);
             
-            showToast('Product added successfully!', 'success');
+            // Show success message with product name
+            showToast(`✅ "${productData.name}" added successfully! Qty: ${productData.quantity}`, 'success');
             return result;
         } else {
             throw new Error(result.error);
@@ -273,7 +281,10 @@ async function addProduct(productData) {
 async function updateProduct(productId, updates) {
     try {
         const product = getProductById(productId);
-        const result = await Firebase.db.updateData(`products/${productId}`, updates);
+        const result = await Firebase.db.updateData(`products/${productId}`, {
+            ...updates,
+            updatedAt: new Date().toISOString()
+        });
         
         if (result.success) {
             console.log('✅ Product updated:', productId);

@@ -563,6 +563,12 @@
     border: 1px solid rgba(124, 58, 237, 0.3);
 }
 
+.status-badge.unknown {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.15), rgba(75, 85, 99, 0.15));
+    color: #4b5563;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
 .status-badge:hover {
     transform: scale(1.05);
 }

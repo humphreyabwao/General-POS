@@ -9,6 +9,19 @@ let cartDiscount = 0;
 let cartTax = 0;
 let selectedPaymentMethod = 'cash';
 
+// Debounce function for search
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // Initialize POS Module
 function initializePOS() {
     initializeProductSearch();
@@ -37,12 +50,28 @@ function initializePOS() {
     calculateTotals();
     
     // Listen to real-time state changes
-    StateEvents.on('sales:updated', updatePOSStats);
-    StateEvents.on('sync:ready', loadPOSStats);
+    StateEvents.on('sales:updated', () => {
+        updatePOSStats();
+        loadTodaySales();
+    });
+    StateEvents.on('stats:updated', updatePOSStats);
+    StateEvents.on('sync:ready', () => {
+        loadPOSStats();
+        loadTodaySales();
+    });
+    
+    // Listen for product updates to refresh search results if active
+    StateEvents.on('products:updated', () => {
+        const searchInput = document.getElementById('posProductSearch');
+        if (searchInput && searchInput.value.trim().length > 0) {
+            performProductSearch(searchInput.value.trim());
+        }
+    });
     
     // Initial load if data is already available
     if (AppState.isInitialized) {
         loadPOSStats();
+        loadTodaySales();
     }
 }
 
@@ -54,8 +83,12 @@ function initializeProductSearch() {
     const searchResults = document.getElementById('posSearchResults');
     
     if (searchInput) {
+        console.log('✅ POS Search initialized');
+        
         searchInput.addEventListener('input', debounce(async (e) => {
-            const searchTerm = e.target.value.trim().toLowerCase();
+            const searchTerm = e.target.value.trim();
+            
+            console.log('🔍 Search input:', searchTerm);
             
             if (searchTerm.length === 0) {
                 searchResults.innerHTML = '';
@@ -63,8 +96,8 @@ function initializeProductSearch() {
                 return;
             }
             
-            // Search products from inventory
-            await searchProducts(searchTerm);
+            // Search products from inventory (minimum 1 character)
+            performProductSearch(searchTerm.toLowerCase());
         }, 300));
         
         // Clear search on click outside
@@ -102,22 +135,52 @@ function initializeProductSearch() {
 }
 
 // Search products from inventory in real-time
-async function searchProducts(searchTerm) {
+function performProductSearch(searchTerm) {
     const searchResults = document.getElementById('posSearchResults');
     
+    if (!searchResults) {
+        console.error('❌ Search results element not found');
+        return;
+    }
+    
     try {
+        console.log('🔍 Searching for:', searchTerm);
+        
         // Show loading
         searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
         searchResults.style.display = 'block';
         
-        // Use global searchProducts function
-        const results = window.searchProducts(searchTerm, 10);
+        // Check if AppState exists
+        if (typeof AppState === 'undefined') {
+            console.error('❌ AppState is not defined');
+            searchResults.innerHTML = '<div class="search-error">System not ready. Please wait...</div>';
+            return;
+        }
+        
+        console.log('📦 Total products in AppState:', AppState.products ? AppState.products.length : 0);
+        
+        // Check if we have products
+        if (!AppState.products || AppState.products.length === 0) {
+            searchResults.innerHTML = '<div class="search-empty">No products in inventory yet. Add products first!</div>';
+            return;
+        }
+        
+        // Search directly in AppState.products
+        const search = searchTerm.toLowerCase();
+        const results = AppState.products.filter(p => 
+            (p.name && p.name.toLowerCase().includes(search)) ||
+            (p.sku && p.sku.toLowerCase().includes(search)) ||
+            (p.barcode && p.barcode.toLowerCase().includes(search)) ||
+            (p.category && p.category.toLowerCase().includes(search))
+        ).slice(0, 10);
+        
+        console.log('✅ Found results:', results.length);
         
         displaySearchResults(results);
         
     } catch (error) {
-        console.error('Error searching products:', error);
-        searchResults.innerHTML = '<div class="search-error">Error searching products. Please try again.</div>';
+        console.error('❌ Error searching products:', error);
+        searchResults.innerHTML = `<div class="search-error">Error: ${error.message}</div>`;
     }
 }
 
@@ -138,9 +201,10 @@ function displaySearchResults(products) {
         const reorderLevel = product.reorderLevel || 10;
         const stockStatus = getStockStatus(stock, reorderLevel);
         const isOutOfStock = stock <= 0;
+        const productId = product.id || product.sku;
         
         html += `
-            <div class="search-result-item ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id || product.sku}">
+            <div class="search-result-item ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${productId}">
                 <div class="product-info">
                     <div class="product-name">${product.name}</div>
                     <div class="product-meta">
@@ -152,7 +216,7 @@ function displaySearchResults(products) {
                 <div class="product-actions">
                     <span class="product-price">KSh ${parseFloat(product.price || 0).toFixed(2)}</span>
                     ${!isOutOfStock ? 
-                        `<button class="btn-add-to-cart" onclick="addToCartFromSearch('${product.id || product.sku}', ${JSON.stringify(product).replace(/"/g, '&quot;')})">
+                        `<button class="btn-add-to-cart" onclick="window.addToCartFromSearch('${productId}')">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                 <path d="M8 3a1 1 0 011 1v3h3a1 1 0 110 2H9v3a1 1 0 11-2 0V9H4a1 1 0 110-2h3V4a1 1 0 011-1z"/>
                             </svg>
@@ -169,62 +233,56 @@ function displaySearchResults(products) {
     searchResults.innerHTML = html;
 }
 
-// Search by barcode
-async function searchByBarcode(barcode) {
+// Search by barcode - Real-time from AppState
+function searchByBarcode(barcode) {
     if (!barcode) return;
     
     try {
-        // First, try to find in inventory (localStorage)
-        const inventoryItems = JSON.parse(localStorage.getItem('inventoryItems') || '[]');
-        const product = inventoryItems.find(p => p.barcode === barcode || p.sku === barcode);
+        // Search in real-time from AppState.products
+        const product = AppState.products.find(p => 
+            p.barcode === barcode || 
+            p.sku === barcode
+        );
         
         if (product) {
-            addToCart(product);
-            showNotification('Product added to cart', 'success');
-            return;
-        }
-        
-        // If not found in inventory and Firebase is available, try Firebase
-        if (db) {
-            const snapshot = await db.collection('inventory')
-                .where('barcode', '==', barcode)
-                .limit(1)
-                .get();
-            
-            if (!snapshot.empty) {
-                const fbProduct = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-                addToCart(fbProduct);
-                showNotification('Product added to cart', 'success');
-                return;
+            // Check if product is in stock
+            if ((product.quantity || 0) > 0) {
+                addToCart(product);
+                showToast(`${product.name} added to cart`, 'success');
+            } else {
+                showToast(`${product.name} is out of stock`, 'error');
             }
-        }
-        
-        // If still not found, try mock data
-        const mockProduct = getMockProducts().find(p => p.barcode === barcode);
-        if (mockProduct) {
-            addToCart(mockProduct);
-            showNotification('Product added to cart', 'success');
         } else {
-            showNotification('Product not found', 'error');
+            showToast('Product not found with barcode: ' + barcode, 'error');
         }
         
     } catch (error) {
         console.error('Error searching by barcode:', error);
-        showNotification('Error searching product', 'error');
+        showToast('Error searching product', 'error');
     }
 }
 
 // Add to cart from search
-function addToCartFromSearch(productId, productData) {
-    const product = typeof productData === 'string' ? JSON.parse(productData) : productData;
+function addToCartFromSearch(productId) {
+    // Find product in real-time from AppState
+    const product = AppState.products.find(p => p.id === productId || p.sku === productId);
+    
+    if (!product) {
+        showToast('Product not found', 'error');
+        return;
+    }
+    
     addToCart(product);
     
     // Close search results
     document.getElementById('posSearchResults').style.display = 'none';
     document.getElementById('posProductSearch').value = '';
     
-    showNotification('Product added to cart', 'success');
+    showToast(`${product.name} added to cart`, 'success');
 }
+
+// Make function available globally
+window.addToCartFromSearch = addToCartFromSearch;
 
 // ===========================
 // Cart Management
@@ -235,11 +293,18 @@ function initializeCartFunctions() {
 
 // Add product to cart
 function addToCart(product) {
-    // Get stock from either 'quantity' (inventory) or 'stock' (Firebase)
-    const availableStock = product.quantity !== undefined ? product.quantity : (product.stock || 0);
-    
     // Use product ID or SKU as unique identifier
     const productId = product.id || product.sku;
+    
+    // Get real-time stock from AppState (most current data)
+    const currentProduct = AppState.products.find(p => p.id === productId || p.sku === productId);
+    const availableStock = currentProduct ? (currentProduct.quantity || 0) : (product.quantity || 0);
+    
+    // Check if product is in stock
+    if (availableStock <= 0) {
+        showToast(`${product.name} is out of stock`, 'error');
+        return;
+    }
     
     // Check if product already in cart
     const existingItem = cart.find(item => item.id === productId);
@@ -250,7 +315,7 @@ function addToCart(product) {
             existingItem.quantity++;
             existingItem.subtotal = existingItem.price * existingItem.quantity * (1 - existingItem.discount / 100);
         } else {
-            showNotification('Maximum stock reached', 'warning');
+            showToast(`Maximum stock reached (${availableStock} available)`, 'warning');
             return;
         }
     } else {
@@ -744,8 +809,8 @@ async function processSale() {
         updateCartDisplay();
         calculateTotals();
         
-        // Update POS stats
-        updatePOSStats();
+        // Stats will be updated automatically via StateEvents
+        console.log('✅ Sale completed! Stats will update automatically.');
         
         // Show success modal with print options
         showSaleSuccessModal(saleData);
@@ -1036,51 +1101,46 @@ function addManualProduct() {
 // ===========================
 function loadPOSStats() {
     updatePOSStats();
-    setInterval(updatePOSStats, 60000); // Update every minute
 }
 
-async function updatePOSStats() {
+function updatePOSStats() {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        let todaySales = 0;
-        let todayRevenue = 0;
-        let todayTransactions = 0;
-        
-        if (db) {
-            const snapshot = await db.collection('sales')
-                .where('date', '>=', today.toISOString())
-                .get();
-            
-            snapshot.forEach(doc => {
-                const sale = doc.data();
-                todayTransactions++;
-                todayRevenue += sale.total || 0;
-                todaySales += sale.items.reduce((sum, item) => sum + item.quantity, 0);
-            });
-        } else {
-            // Use localStorage for demo
-            const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-            const todaySalesData = sales.filter(sale => {
-                const saleDate = new Date(sale.date);
-                return saleDate >= today;
-            });
-            
-            todaySalesData.forEach(sale => {
-                todayTransactions++;
-                todayRevenue += sale.total || 0;
-                todaySales += sale.items.reduce((sum, item) => sum + item.quantity, 0);
-            });
+        // Check if AppState is initialized
+        if (!AppState || !AppState.isInitialized) {
+            console.log('⏳ Waiting for AppState to initialize...');
+            return;
         }
         
-        // Update display
-        document.getElementById('posTodaySales').textContent = todaySales;
-        document.getElementById('posTodayRevenue').textContent = `KSh ${todayRevenue.toFixed(2)}`;
-        document.getElementById('posTodayTransactions').textContent = todayTransactions;
+        const stats = AppState.stats;
+        
+        console.log('📊 POS Stats:', {
+            todayRevenue: stats.todayRevenue,
+            todayTransactions: stats.todayTransactions,
+            todaySales: stats.todaySales
+        });
+        
+        // Update Today's Sales (number of items sold)
+        const todaySalesEl = document.getElementById('posTodaySales');
+        if (todaySalesEl) {
+            todaySalesEl.textContent = stats.todaySales || 0;
+        }
+        
+        // Update Today's Revenue
+        const todayRevenueEl = document.getElementById('posTodayRevenue');
+        if (todayRevenueEl) {
+            todayRevenueEl.textContent = formatCurrency(stats.todayRevenue || 0);
+        }
+        
+        // Update Today's Transactions
+        const todayTransactionsEl = document.getElementById('posTodayTransactions');
+        if (todayTransactionsEl) {
+            todayTransactionsEl.textContent = stats.todayTransactions || 0;
+        }
+        
+        console.log('✅ POS stats updated successfully');
         
     } catch (error) {
-        console.error('Error loading POS stats:', error);
+        console.error('❌ Error loading POS stats:', error);
     }
 }
 
@@ -1155,20 +1215,27 @@ function initializeTodaySales() {
     loadTodaySales();
 }
 
-// Load and display today''s sales
+// Load and display today's sales
 function loadTodaySales() {
-    const sales = JSON.parse(localStorage.getItem(''sales'') || ''[]'');
+    // Check if AppState is initialized
+    if (!AppState || !AppState.isInitialized) {
+        console.log('⏳ Waiting for AppState to initialize...');
+        return;
+    }
     
-    // Get today''s date
+    // Get today's date
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayTimestamp = today.getTime();
     
-    // Filter sales for today
-    const todaySales = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
+    // Filter sales for today from AppState
+    const todaySales = AppState.sales.filter(sale => {
+        const saleDate = new Date(sale.createdAt || sale.date);
         saleDate.setHours(0, 0, 0, 0);
-        return saleDate.getTime() === today.getTime();
+        return saleDate.getTime() === todayTimestamp;
     });
+    
+    console.log('📊 Loading today\'s sales:', todaySales.length, 'transactions');
     
     // Update summary cards
     updateTodaySalesSummary(todaySales);
@@ -1187,7 +1254,7 @@ function updateTodaySalesSummary(sales) {
     sales.forEach(sale => {
         totalRevenue += sale.total || 0;
         
-        if (sale.paymentMethod === ''cash'') {
+        if (sale.paymentMethod === 'cash' || sale.paymentMethod === 'Cash') {
             cashSales += sale.total || 0;
         } else {
             digitalSales += sale.total || 0;
@@ -1195,55 +1262,60 @@ function updateTodaySalesSummary(sales) {
     });
     
     // Update DOM
-    document.getElementById(''todaySalesCount'').textContent = totalSales;
-    document.getElementById(''todaySalesRevenue'').textContent = `KSh ${totalRevenue.toFixed(2)}`;
-    document.getElementById(''todayCashSales'').textContent = `KSh ${cashSales.toFixed(2)}`;
-    document.getElementById(''todayDigitalSales'').textContent = `KSh ${digitalSales.toFixed(2)}`;
+    const todaySalesCountEl = document.getElementById('todaySalesCount');
+    const todaySalesRevenueEl = document.getElementById('todaySalesRevenue');
+    const todayCashSalesEl = document.getElementById('todayCashSales');
+    const todayDigitalSalesEl = document.getElementById('todayDigitalSales');
+    
+    if (todaySalesCountEl) todaySalesCountEl.textContent = totalSales;
+    if (todaySalesRevenueEl) todaySalesRevenueEl.textContent = formatCurrency(totalRevenue);
+    if (todayCashSalesEl) todayCashSalesEl.textContent = formatCurrency(cashSales);
+    if (todayDigitalSalesEl) todayDigitalSalesEl.textContent = formatCurrency(digitalSales);
 }
 
 // Display sales in table
 function displayTodaySalesTable(sales) {
-    const tbody = document.getElementById(''todaySalesTableBody'');
-    const emptyState = document.getElementById(''todaySalesEmpty'');
+    const tbody = document.getElementById('todaySalesTableBody');
+    const emptyState = document.getElementById('todaySalesEmpty');
     
     if (!sales || sales.length === 0) {
-        tbody.innerHTML = '''';
-        emptyState.style.display = ''flex'';
+        tbody.innerHTML = '';
+        emptyState.style.display = 'flex';
         return;
     }
     
-    emptyState.style.display = ''none'';
+    emptyState.style.display = 'none';
     
     // Sort by date descending (newest first)
     sales.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    let html = '''';
+    let html = '';
     sales.forEach(sale => {
         const saleDate = new Date(sale.date);
-        const timeString = saleDate.toLocaleTimeString(''en-KE'', { 
-            hour: ''2-digit'', 
-            minute: ''2-digit'' 
+        const timeString = saleDate.toLocaleTimeString('en-KE', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
         });
         
         const itemCount = sale.items ? sale.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
         
         // Payment method badge
-        let paymentBadge = '''';
-        if (sale.paymentMethod === ''cash'') {
+        let paymentBadge = '';
+        if (sale.paymentMethod === 'cash') {
             paymentBadge = `<span class="sale-badge cash">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2 6h20v12H2V6zm2 2v8h16V8H4zm8 6a3 3 0 100-6 3 3 0 000 6z"/>
                 </svg>
                 Cash
             </span>`;
-        } else if (sale.paymentMethod === ''mpesa'') {
+        } else if (sale.paymentMethod === 'mpesa') {
             paymentBadge = `<span class="sale-badge mpesa">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
                 </svg>
                 M-PESA
             </span>`;
-        } else if (sale.paymentMethod === ''card'') {
+        } else if (sale.paymentMethod === 'card') {
             paymentBadge = `<span class="sale-badge card">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 2v2H4V6h16zM4 18v-6h16v6H4z"/>
@@ -1256,10 +1328,10 @@ function displayTodaySalesTable(sales) {
             <tr>
                 <td><strong>#${sale.saleNumber}</strong></td>
                 <td>${timeString}</td>
-                <td>${itemCount} item${itemCount !== 1 ? ''s'' : ''''}</td>
+                <td>${itemCount} item${itemCount !== 1 ? 's' : ''}</td>
                 <td><strong>KSh ${(sale.total || 0).toFixed(2)}</strong></td>
                 <td>${paymentBadge}</td>
-                <td>${sale.cashier || ''User''}</td>
+                <td>${sale.cashier || 'User'}</td>
                 <td>
                     <div class="sale-actions">
                         <button class="action-btn view" onclick="viewSaleDetails(''${sale.saleNumber}'')">
@@ -1285,11 +1357,11 @@ function displayTodaySalesTable(sales) {
 
 // View sale details
 function viewSaleDetails(saleNumber) {
-    const sales = JSON.parse(localStorage.getItem(''sales'') || ''[]'');
+    const sales = JSON.parse(localStorage.getItem('sales') || '[]');
     const sale = sales.find(s => s.saleNumber === saleNumber);
     
     if (!sale) {
-        showNotification(''Sale not found'', ''error'');
+        showToast('Sale not found', 'error');
         return;
     }
     
@@ -1299,20 +1371,20 @@ function viewSaleDetails(saleNumber) {
 
 // Show sale details modal
 function showSaleDetailsModal(sale) {
-    const modal = document.createElement(''div'');
-    modal.className = ''modal'';
-    modal.style.display = ''flex'';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
     
     const saleDate = new Date(sale.date);
-    const dateString = saleDate.toLocaleString(''en-KE'', {
-        year: ''numeric'',
-        month: ''long'',
-        day: ''numeric'',
-        hour: ''2-digit'',
-        minute: ''2-digit''
+    const dateString = saleDate.toLocaleString('en-KE', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     });
     
-    let itemsHtml = '''';
+    let itemsHtml = '';
     if (sale.items && sale.items.length > 0) {
         sale.items.forEach(item => {
             itemsHtml += `
@@ -1330,7 +1402,7 @@ function showSaleDetailsModal(sale) {
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h2>Sale Details - #${sale.saleNumber}</h2>
-                <button class="modal-close" onclick="this.closest(''.modal'').remove()">
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1344,13 +1416,13 @@ function showSaleDetailsModal(sale) {
                             <strong>Date & Time:</strong><br>${dateString}
                         </div>
                         <div>
-                            <strong>Cashier:</strong><br>${sale.cashier || ''User''}
+                            <strong>Cashier:</strong><br>${sale.cashier || 'User'}
                         </div>
                         <div>
                             <strong>Payment Method:</strong><br>${sale.paymentMethod.toUpperCase()}
                         </div>
                         <div>
-                            <strong>Branch:</strong><br>${sale.branch || ''Main Branch''}
+                            <strong>Branch:</strong><br>${sale.branch || 'Main Branch'}
                         </div>
                     </div>
                 </div>
@@ -1406,21 +1478,40 @@ function showSaleDetailsModal(sale) {
 
 // Print sale receipt
 function printSaleReceipt(saleNumber) {
-    const sales = JSON.parse(localStorage.getItem(''sales'') || ''[]'');
+    const sales = JSON.parse(localStorage.getItem('sales') || '[]');
     const sale = sales.find(s => s.saleNumber === saleNumber);
     
     if (!sale) {
-        showNotification(''Sale not found'', ''error'');
+        showToast('Sale not found', 'error');
         return;
     }
     
     // Use existing printReceipt function
     printReceipt(sale);
-    showNotification(''Receipt sent to printer'', ''success'');
+    showToast('Receipt sent to printer', 'success');
 }
 
-// Refresh today''s sales
+// Refresh today's sales
 function refreshTodaySales() {
     loadTodaySales();
-    showNotification(''Sales refreshed'', ''success'');
+    showToast('Sales refreshed', 'success');
 }
+
+// ===========================
+// Expose Functions to Window for onclick handlers
+// ===========================
+window.decreaseQuantity = decreaseQuantity;
+window.increaseQuantity = increaseQuantity;
+window.updateQuantity = updateQuantity;
+window.removeFromCart = removeFromCart;
+window.clearCart = clearCart;
+window.showCheckoutModal = showCheckoutModal;
+window.closeCheckoutModal = closeCheckoutModal;
+window.showManualAddModal = showManualAddModal;
+window.closeManualAddModal = closeManualAddModal;
+window.addManualProduct = addManualProduct;
+window.processSale = processSale;
+window.printReceipt = printReceipt;
+window.viewSaleDetails = viewSaleDetails;
+window.printSaleReceipt = printSaleReceipt;
+window.refreshTodaySales = refreshTodaySales;
