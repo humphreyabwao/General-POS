@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/sales.css">
+    <link rel="stylesheet" href="css/b2b.css">
 </head>
 <body>
     <!-- Sidebar -->
@@ -1418,11 +1419,165 @@
             <!-- B2B Sales Module -->
             <div class="module" id="b2b-sales-module">
                 <div class="module-header">
-                    <h1>B2B Sales</h1>
+                    <div class="header-left">
+                        <h1>B2B / Wholesale Sales</h1>
+                        <p class="header-subtitle">Manage bulk orders and wholesale transactions</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="retailSaleBtn" data-page="pos-new-sale">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            Sell as Retailer
+                        </button>
+                        <button class="btn btn-primary" id="newB2BSaleBtn" data-page="b2b-new-sale">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            New Wholesale Order
+                        </button>
+                    </div>
                 </div>
+                
                 <div class="module-content">
-                    <!-- B2B Sales content will go here -->
+                    <!-- Stats Cards -->
+                    <div class="b2b-stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Total B2B Sales</div>
+                                <div class="stat-value" id="b2bTotalSales">KSh 0.00</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Active Customers</div>
+                                <div class="stat-value" id="b2bActiveCustomers">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Total Orders</div>
+                                <div class="stat-value" id="b2bTotalOrders">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Avg Order Value</div>
+                                <div class="stat-value" id="b2bAvgOrderValue">KSh 0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search and Filters -->
+                    <div class="b2b-toolbar">
+                        <div class="search-bar-container">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="b2bSearchInput" 
+                                class="search-input" 
+                                placeholder="Search by order ID, customer name, or product..."
+                            />
+                        </div>
+                        
+                        <div class="filter-group">
+                            <select id="b2bStatusFilter" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            
+                            <select id="b2bDateFilter" class="filter-select">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="thisWeek">This Week</option>
+                                <option value="thisMonth">This Month</option>
+                            </select>
+                            
+                            <button class="btn btn-primary" id="addB2BProductBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Product
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- B2B Orders Table -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Products</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="b2bOrdersTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="opacity: 0.5; margin-bottom: 12px;">
+                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                        </svg>
+                                        <p>No wholesale orders found</p>
+                                        <button class="btn btn-primary" style="margin-top: 16px;" onclick="navigateToPage('b2b-new-sale')">
+                                            Create First Order
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            </div>
+            
+            <!-- B2B Order Detail Modal -->
+            <div id="b2bOrderModal" class="modal">
+                <!-- Modal content will be dynamically inserted -->
             </div>
 
             <!-- B2B - New Sale Module -->
@@ -1641,5 +1796,6 @@
     <script src="js/pos.js"></script>
     <script src="js/sales.js"></script>
     <script src="js/sales-export.js"></script>
+    <script src="js/b2b.js"></script>
 </body>
 </html>

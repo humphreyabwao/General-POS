@@ -327,6 +327,11 @@ function initializeModulePage(page) {
                 initializeSalesExport();
             }
             break;
+        case 'b2b-sales':
+            if (typeof initializeB2BModule === 'function') {
+                initializeB2BModule();
+            }
+            break;
         default:
             // Other modules can be initialized here
             break;
