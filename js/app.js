@@ -319,6 +319,14 @@ function initializeModulePage(page) {
                 }
             }
             break;
+        case 'all-sales-view':
+            if (typeof initializeSalesModule === 'function') {
+                initializeSalesModule();
+            }
+            if (typeof initializeSalesExport === 'function') {
+                initializeSalesExport();
+            }
+            break;
         default:
             // Other modules can be initialized here
             break;
@@ -328,10 +336,97 @@ function initializeModulePage(page) {
 // ===========================
 // Utility Functions
 // ===========================
-function showToast(message, type = 'info') {
-    // Simple toast notification
+function showToast(message, type = 'info', duration = 3000) {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        min-width: 300px;
+        padding: 16px 20px;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideInRight 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    `;
+    
+    // Set color based on type
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#2563eb'
+    };
+    toast.style.backgroundColor = colors[type] || colors.info;
+    
+    // Add icon
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    const icon = document.createElement('span');
+    icon.textContent = icons[type] || icons.info;
+    icon.style.cssText = 'font-size: 18px; font-weight: bold;';
+    
+    const text = document.createElement('span');
+    text.textContent = message;
+    text.style.flex = '1';
+    
+    toast.appendChild(icon);
+    toast.appendChild(text);
+    toastContainer.appendChild(toast);
+    
+    // Add animation style if not exists
+    if (!document.getElementById('toastAnimations')) {
+        const style = document.createElement('style');
+        style.id = 'toastAnimations';
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Auto remove after duration
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+            toast.remove();
+            if (toastContainer.children.length === 0) {
+                toastContainer.remove();
+            }
+        }, 300);
+    }, duration);
+    
     console.log(`[${type.toUpperCase()}] ${message}`);
-    // Full implementation can be added later
 }
 
 function formatCurrency(amount) {
