@@ -1,0 +1,708 @@
+/* ===========================
+   CSS Variables
+   =========================== */
+:root {
+    /* Colors - Static Solid Colors */
+    --color-blue: #2563eb;
+    --color-blue-hover: #1d4ed8;
+    --color-blue-light: #3b82f6;
+    --color-green: #10b981;
+    --color-green-hover: #059669;
+    --color-green-light: #34d399;
+    --color-red: #ef4444;
+    --color-red-hover: #dc2626;
+    --color-red-light: #f87171;
+    
+    /* Light Mode Colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --bg-hover: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    
+    /* Sidebar */
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 70px;
+    --sidebar-bg: var(--bg-primary);
+    --sidebar-text: var(--text-secondary);
+    --sidebar-text-hover: var(--text-primary);
+    --sidebar-active-bg: var(--color-blue);
+    --sidebar-active-text: #ffffff;
+    --sidebar-hover-bg: var(--bg-tertiary);
+    --sidebar-border: var(--border-color);
+    
+    /* Topbar */
+    --topbar-height: 64px;
+    --topbar-bg: var(--bg-primary);
+    --topbar-border: var(--border-color);
+    --topbar-icon-color: var(--text-secondary);
+    --topbar-icon-hover: var(--text-primary);
+    
+    /* Buttons */
+    --btn-hover-opacity: 0.9;
+    
+    /* Dropdown */
+    --dropdown-bg: var(--bg-primary);
+    --dropdown-border: var(--border-color);
+    --dropdown-hover: var(--bg-tertiary);
+    
+    /* Input */
+    --input-bg: var(--bg-primary);
+    --input-border: var(--border-color);
+    --input-focus: var(--color-blue);
+    
+    /* Transitions */
+    --transition-fast: all 0.15s ease;
+    --transition: all 0.3s ease;
+    --transition-slow: all 0.5s ease;
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
+    /* Dark Mode Colors */
+    --bg-primary: #1e293b;
+    --bg-secondary: #0f172a;
+    --bg-tertiary: #334155;
+    --bg-hover: #475569;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --border-color: #334155;
+    --border-hover: #475569;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+    
+    /* Sidebar Dark */
+    --sidebar-bg: var(--bg-secondary);
+    --sidebar-text: var(--text-secondary);
+    --sidebar-text-hover: var(--text-primary);
+    --sidebar-hover-bg: var(--bg-tertiary);
+    --sidebar-border: var(--border-color);
+    
+    /* Topbar Dark */
+    --topbar-bg: var(--bg-secondary);
+    --topbar-border: var(--border-color);
+    --topbar-icon-color: var(--text-secondary);
+    --topbar-icon-hover: var(--text-primary);
+    
+    /* Dropdown Dark */
+    --dropdown-bg: var(--bg-tertiary);
+    --dropdown-border: var(--border-color);
+    --dropdown-hover: var(--bg-hover);
+    
+    /* Input Dark */
+    --input-bg: var(--bg-tertiary);
+    --input-border: var(--border-color);
+    --input-focus: var(--color-blue-light);
+}
+
+/* ===========================
+   Reset & Base Styles
+   =========================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+/* ===========================
+   Sidebar Styles
+   =========================== */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    transition: width 0.3s ease, background-color 0.3s ease;
+    z-index: 1000;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .sidebar-nav span {
+    opacity: 0;
+    display: none;
+}
+
+.sidebar-header {
+    height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--sidebar-border);
+    background-color: var(--sidebar-bg);
+    transition: background-color 0.3s ease;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    flex-shrink: 0;
+}
+
+.logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    transition: var(--transition);
+}
+
+.sidebar-nav {
+    padding: 20px 0;
+}
+
+.sidebar-nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-nav li {
+    padding: 0 12px;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--sidebar-text);
+    border-radius: 8px;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.sidebar-nav a:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-text-hover);
+    transform: translateX(2px);
+}
+
+.sidebar-nav li.active a {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-nav li.active a:hover {
+    background-color: var(--color-blue-hover);
+    transform: translateX(0);
+}
+
+.sidebar-nav .icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar.collapsed .sidebar-nav a {
+    justify-content: center;
+    padding: 12px;
+}
+
+/* Submenu Styles */
+.sidebar-nav .has-submenu > a {
+    position: relative;
+}
+
+.submenu-arrow {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+.has-submenu.open > a .submenu-arrow {
+    transform: rotate(180deg);
+}
+
+.submenu {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 32px;
+    margin-top: 4px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+}
+
+.has-submenu.open .submenu {
+    display: flex;
+    max-height: 500px;
+}
+
+.submenu li a {
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--sidebar-text);
+    border-radius: 6px;
+}
+
+.submenu li a .icon {
+    width: 16px;
+    height: 16px;
+}
+
+.submenu li a:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-text-hover);
+    transform: translateX(2px);
+}
+
+.submenu li.active a {
+    background-color: var(--color-green);
+    color: #ffffff;
+}
+
+.sidebar.collapsed .submenu {
+    display: none !important;
+}
+
+.sidebar.collapsed .submenu-arrow {
+    display: none;
+}
+
+/* ===========================
+   Main Wrapper
+   =========================== */
+.main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: var(--transition);
+}
+
+.sidebar.collapsed ~ .main-wrapper {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+/* ===========================
+   Topbar Styles
+   =========================== */
+.topbar {
+    position: sticky;
+    top: 0;
+    height: var(--topbar-height);
+    background-color: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.sidebar-toggle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: var(--topbar-icon-color);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--topbar-icon-hover);
+}
+
+.business-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.business-logo {
+    flex-shrink: 0;
+}
+
+.business-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.theme-toggle,
+.notification-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: var(--topbar-icon-color);
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+    position: relative;
+}
+
+.theme-toggle:hover,
+.notification-btn:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--topbar-icon-hover);
+    transform: scale(1.05);
+}
+
+.theme-toggle:active,
+.notification-btn:active {
+    transform: scale(0.95);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background-color: var(--color-red);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+}
+
+/* Profile Dropdown */
+.profile-dropdown {
+    position: relative;
+}
+
+.profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.profile-btn:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.profile-avatar {
+    flex-shrink: 0;
+}
+
+.dropdown-arrow {
+    color: var(--topbar-icon-color);
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.profile-dropdown.active .dropdown-arrow {
+    transform: rotate(180deg);
+    color: var(--topbar-icon-hover);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 240px;
+    background-color: var(--dropdown-bg);
+    border: 1px solid var(--dropdown-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease, background-color 0.3s ease;
+}
+
+.profile-dropdown.active .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--dropdown-border);
+    background-color: var(--dropdown-bg);
+    border-radius: 12px 12px 0 0;
+    transition: background-color 0.3s ease;
+}
+
+.dropdown-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dropdown-user-info strong {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.dropdown-user-info span {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.dropdown-list {
+    padding: 8px;
+}
+
+.dropdown-list li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 14px;
+}
+
+.dropdown-list li a:hover {
+    background-color: var(--dropdown-hover);
+}
+
+.dropdown-list li a svg {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.dropdown-list li a:hover svg {
+    color: var(--text-primary);
+}
+
+.dropdown-list .logout-btn {
+    color: var(--color-red);
+}
+
+.dropdown-list .logout-btn svg {
+    color: var(--color-red);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: var(--dropdown-border);
+    margin: 8px 0;
+    transition: background-color 0.3s ease;
+}
+
+/* ===========================
+   Content Area
+   =========================== */
+.content {
+    padding: 24px;
+    min-height: calc(100vh - var(--topbar-height));
+}
+
+.module {
+    display: none;
+}
+
+.module.active {
+    display: block;
+}
+
+.module-header {
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border-color);
+    transition: border-color 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.module-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+}
+
+.module-content {
+    background-color: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    min-height: 400px;
+    transition: none;
+    border: none;
+}
+
+/* ===========================
+   Scrollbar Styles
+   =========================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    transition: background-color 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-secondary);
+}
+
+/* ===========================
+   Responsive Design
+   =========================== */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .main-wrapper {
+        margin-left: 0;
+    }
+    
+    .business-name {
+        display: none;
+    }
+}
+
+/* ===========================
+   Utility Classes
+   =========================== */
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    outline: none;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: var(--color-blue);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-blue-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background-color: var(--color-green);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-success:hover {
+    background-color: var(--color-green-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background-color: var(--color-red);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-danger:hover {
+    background-color: var(--color-red-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-hover);
+}
