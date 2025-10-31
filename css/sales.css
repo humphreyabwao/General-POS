@@ -88,6 +88,49 @@
     height: 18px;
 }
 
+/* Sales Stats Card */
+.sales-stats-card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-label svg {
+    color: var(--primary);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
 /* Sales Toolbar */
 .sales-toolbar {
     display: flex;

@@ -270,6 +270,9 @@ function applyFiltersAndDisplay() {
     filteredSales = filtered;
     console.log(`✅ Filtered results: ${filtered.length} sales out of ${allSalesCache.length}`);
     
+    // Update stats card
+    updateSalesStatsCard();
+    
     // Display the filtered sales
     displaySalesTable();
 }
@@ -308,9 +311,15 @@ function getDateRange(rangeType) {
             
         case 'thisMonth':
             const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            monthStart.setHours(0, 0, 0, 0);
+            
+            // Get the last day of current month
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            monthEnd.setHours(23, 59, 59, 999);
+            
             return {
                 start: monthStart,
-                end: end
+                end: monthEnd
             };
             
         case 'custom':
@@ -330,6 +339,55 @@ function getDateRange(rangeType) {
             
         default:
             return null;
+    }
+}
+
+// ===========================
+// Update Sales Stats Card
+// ===========================
+function updateSalesStatsCard() {
+    const statValueEl = document.getElementById('salesStatValue');
+    const statCountEl = document.getElementById('salesStatCount');
+    const statLabelEl = document.getElementById('salesStatLabel');
+    
+    if (!statValueEl || !statCountEl || !statLabelEl) {
+        return;
+    }
+    
+    // Calculate total from filtered sales
+    const totalAmount = filteredSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const count = filteredSales.length;
+    
+    // Update the label based on filter
+    const labelText = getStatLabelText();
+    
+    // Update DOM
+    statLabelEl.textContent = labelText;
+    statValueEl.textContent = formatCurrencyKSh(totalAmount);
+    statCountEl.textContent = `${count} transaction${count !== 1 ? 's' : ''}`;
+}
+
+// ===========================
+// Get Stats Label Text
+// ===========================
+function getStatLabelText() {
+    const filterType = SalesFilterState.dateRange;
+    
+    switch (filterType) {
+        case 'all':
+            return 'Total Sales (All Time)';
+        case 'today':
+            return 'Total Sales (Today)';
+        case 'yesterday':
+            return 'Total Sales (Yesterday)';
+        case 'thisWeek':
+            return 'Total Sales (This Week)';
+        case 'thisMonth':
+            return 'Total Sales (This Month)';
+        case 'custom':
+            return 'Total Sales (Custom Range)';
+        default:
+            return 'Total Sales';
     }
 }
 

@@ -323,8 +323,10 @@ function getDateRangeText() {
             return `This Week: ${weekStart.toLocaleDateString('en-US')} - ${today.toLocaleDateString('en-US')}`;
         
         case 'thisMonth':
-            const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-            return `This Month: ${monthStart.toLocaleDateString('en-US')} - ${new Date().toLocaleDateString('en-US')}`;
+            const now = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            return `This Month: ${monthStart.toLocaleDateString('en-US')} - ${monthEnd.toLocaleDateString('en-US')}`;
         
         case 'custom':
             if (SalesFilterState.customStartDate && SalesFilterState.customEndDate) {
