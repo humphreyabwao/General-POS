@@ -8,7 +8,7 @@ let salesListener = null;
 
 // Filter state
 const SalesFilterState = {
-    dateRange: 'today', // today, yesterday, thisWeek, thisMonth, custom
+    dateRange: 'all', // all, today, yesterday, thisWeek, thisMonth, custom
     customStartDate: null,
     customEndDate: null,
     searchTerm: '',
@@ -286,6 +286,10 @@ function getDateRange(rangeType) {
     end.setHours(23, 59, 59, 999);
     
     switch (rangeType) {
+        case 'all':
+            // Return null to indicate no date filtering
+            return null;
+            
         case 'today':
             return { start, end };
             
@@ -593,29 +597,77 @@ function openSaleDetailModal(saleId) {
     `;
     
     modal.innerHTML = modalContent;
-    modal.style.display = 'flex';
     
-    // Close button handlers
+    // Show modal with smooth transition
+    requestAnimationFrame(() => {
+        modal.classList.add('show');
+    });
+    
+    // Setup event listeners
+    setupSaleModalListeners(modal, sale.id);
+}
+
+// ===========================
+// Setup Sale Modal Listeners
+// ===========================
+function setupSaleModalListeners(modal, saleId) {
+    // Close button handlers - clone to remove old listeners
     modal.querySelectorAll('.close-modal').forEach(btn => {
-        btn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', () => closeSaleModal(modal));
     });
     
-    // Close on outside click
-    modal.addEventListener('click', (e) => {
+    // Backdrop click
+    const backdropHandler = (e) => {
         if (e.target === modal) {
-            modal.style.display = 'none';
+            closeSaleModal(modal);
         }
-    });
+    };
+    modal.removeEventListener('click', backdropHandler);
+    modal.addEventListener('click', backdropHandler);
+    
+    // ESC key
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeSaleModal(modal);
+        }
+    };
+    document.removeEventListener('keydown', escHandler);
+    document.addEventListener('keydown', escHandler);
+    
+    // Store handler for cleanup
+    modal._escHandler = escHandler;
     
     // Print button
     const printBtn = modal.querySelector('.print-modal-btn');
     if (printBtn) {
-        printBtn.addEventListener('click', () => {
-            printSaleReceipt(sale.id);
+        const newPrintBtn = printBtn.cloneNode(true);
+        printBtn.parentNode.replaceChild(newPrintBtn, printBtn);
+        newPrintBtn.addEventListener('click', () => {
+            printSaleReceipt(saleId);
         });
     }
+}
+
+// ===========================
+// Close Sale Modal
+// ===========================
+function closeSaleModal(modal) {
+    modal.classList.remove('show');
+    
+    // Cleanup ESC handler
+    if (modal._escHandler) {
+        document.removeEventListener('keydown', modal._escHandler);
+        modal._escHandler = null;
+    }
+    
+    // Wait for transition before clearing content
+    setTimeout(() => {
+        if (!modal.classList.contains('show')) {
+            modal.innerHTML = '';
+        }
+    }, 300)
 }
 
 // ===========================

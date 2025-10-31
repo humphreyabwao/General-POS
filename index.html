@@ -1068,7 +1068,7 @@
                 <div class="modal-content pos-checkout-modal">
                     <div class="modal-header">
                         <h2>Complete Sale</h2>
-                        <button class="modal-close" onclick="closeCheckoutModal()">
+                        <button class="modal-close" type="button">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1150,8 +1150,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn-secondary" onclick="closeCheckoutModal()">Cancel</button>
-                        <button class="btn-primary" id="posConfirmSale" onclick="processSale()">
+                        <button class="btn-secondary" type="button">Cancel</button>
+                        <button class="btn-primary" id="posConfirmSale" type="button">
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
                                 <path d="M16.5 3l-9 9-4.5-4.5L1.5 9l6 6L18 4.5z"/>
                             </svg>
@@ -1166,7 +1166,7 @@
                 <div class="modal-content pos-manual-modal">
                     <div class="modal-header">
                         <h2>Add Manual Product</h2>
-                        <button class="modal-close" onclick="closeManualAddModal()">
+                        <button class="modal-close" type="button">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1188,8 +1188,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn-secondary" onclick="closeManualAddModal()">Cancel</button>
-                        <button class="btn-primary" onclick="addManualProduct()">Add to Cart</button>
+                        <button class="btn-secondary" type="button">Cancel</button>
+                        <button class="btn-primary" id="manualAddProductBtn" type="button">Add to Cart</button>
                     </div>
                 </div>
             </div>
@@ -1285,7 +1285,8 @@
                         
                         <!-- Date Range Filters -->
                         <div class="date-filters">
-                            <button class="filter-btn active" data-date-filter="today">Today</button>
+                            <button class="filter-btn active" data-date-filter="all">All Time</button>
+                            <button class="filter-btn" data-date-filter="today">Today</button>
                             <button class="filter-btn" data-date-filter="yesterday">Yesterday</button>
                             <button class="filter-btn" data-date-filter="thisWeek">This Week</button>
                             <button class="filter-btn" data-date-filter="thisMonth">This Month</button>
@@ -1393,7 +1394,7 @@
             </div>
             
             <!-- Sale Detail Modal -->
-            <div id="saleDetailModal" class="modal" style="display: none;">
+            <div id="saleDetailModal" class="modal">
                 <!-- Modal content will be dynamically inserted -->
             </div>
 

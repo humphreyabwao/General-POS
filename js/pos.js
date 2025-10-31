@@ -22,6 +22,27 @@ function debounce(func, wait) {
     };
 }
 
+// Initialize keyboard support for modals
+function initializeModalKeyboardSupport() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Close checkout modal if open
+            const checkoutModal = document.getElementById('posCheckoutModal');
+            if (checkoutModal && checkoutModal.style.display === 'flex') {
+                closeCheckoutModal();
+                return;
+            }
+            
+            // Close manual add modal if open
+            const manualModal = document.getElementById('posManualAddModal');
+            if (manualModal && manualModal.style.display === 'flex') {
+                closeManualAddModal();
+                return;
+            }
+        }
+    });
+}
+
 // Initialize POS Module
 function initializePOS() {
     initializeProductSearch();
@@ -29,6 +50,7 @@ function initializePOS() {
     initializePaymentMethods();
     initializeDiscountTax();
     initializeCheckoutProcess();
+    initializeModalKeyboardSupport();
     
     // Clear cart on initialization
     cart = [];
@@ -131,6 +153,68 @@ function initializeProductSearch() {
     const manualAddBtn = document.getElementById('posManualAdd');
     if (manualAddBtn) {
         manualAddBtn.addEventListener('click', showManualAddModal);
+    }
+    
+    // Set up manual add modal listeners
+    setupManualAddModalListeners();
+}
+
+// Setup manual add modal event listeners
+function setupManualAddModalListeners() {
+    const modal = document.getElementById('posManualAddModal');
+    if (!modal) return;
+    
+    // Close button handlers
+    const closeButtons = modal.querySelectorAll('.modal-close');
+    closeButtons.forEach(btn => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeManualAddModal();
+        });
+    });
+    
+    // Cancel button
+    const cancelBtn = modal.querySelector('.modal-footer .btn-secondary');
+    if (cancelBtn) {
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.textContent = 'Cancel';
+        newCancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeManualAddModal();
+        });
+    }
+    
+    // Add product button
+    const addBtn = modal.querySelector('#manualAddProductBtn');
+    if (addBtn) {
+        const newAddBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+        newAddBtn.innerHTML = addBtn.innerHTML;
+        newAddBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            addManualProduct();
+        });
+    }
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeManualAddModal();
+        }
+    });
+    
+    // Prevent clicks inside modal content from closing
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     }
 }
 
@@ -680,6 +764,67 @@ function initializeCheckoutProcess() {
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', showCheckoutModal);
     }
+    
+    // Set up checkout modal event listeners
+    setupCheckoutModalListeners();
+}
+
+// Setup checkout modal event listeners
+function setupCheckoutModalListeners() {
+    const modal = document.getElementById('posCheckoutModal');
+    if (!modal) return;
+    
+    // Close button handlers (remove inline onclick and add proper listeners)
+    const closeButtons = modal.querySelectorAll('.modal-close');
+    closeButtons.forEach(btn => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeCheckoutModal();
+        });
+    });
+    
+    // Cancel button
+    const cancelBtn = modal.querySelector('.modal-footer .btn-secondary');
+    if (cancelBtn) {
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeCheckoutModal();
+        });
+    }
+    
+    // Confirm sale button
+    const confirmBtn = modal.querySelector('#posConfirmSale');
+    if (confirmBtn) {
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        newConfirmBtn.innerHTML = confirmBtn.innerHTML; // Preserve inner HTML
+        newConfirmBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            processSale();
+        });
+    }
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeCheckoutModal();
+        }
+    });
+    
+    // Prevent clicks inside modal content from closing
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
 }
 
 // Show checkout modal
@@ -726,16 +871,28 @@ function showCheckoutModal() {
 // Close checkout modal
 function closeCheckoutModal() {
     const modal = document.getElementById('posCheckoutModal');
-    if (modal) {
-        modal.classList.remove('show');
+    if (!modal) return;
+    
+    // Remove show class for animation
+    modal.classList.remove('show');
+    
+    // Hide after animation completes
+    setTimeout(() => {
+        modal.style.display = 'none';
         
-        // Hide after animation completes
-        setTimeout(() => {
-            if (modal.style.display !== 'none') {
-                modal.style.display = 'none';
-            }
-        }, 150);
-    }
+        // Reset form values
+        const amountInput = document.getElementById('posAmountReceived');
+        const mpesaInput = document.getElementById('posMpesaCode');
+        const cardInput = document.getElementById('posCardNumber');
+        
+        if (amountInput) amountInput.value = '';
+        if (mpesaInput) mpesaInput.value = '';
+        if (cardInput) cardInput.value = '';
+        
+        // Reset change display
+        const changeDisplay = document.getElementById('posChange');
+        if (changeDisplay) changeDisplay.textContent = 'KSh 0.00';
+    }, 300);
 }
 
 // Process sale
@@ -1049,16 +1206,24 @@ function showManualAddModal() {
 
 function closeManualAddModal() {
     const modal = document.getElementById('posManualAddModal');
-    if (modal) {
-        modal.classList.remove('show');
+    if (!modal) return;
+    
+    // Remove show class for animation
+    modal.classList.remove('show');
+    
+    // Hide after animation completes
+    setTimeout(() => {
+        modal.style.display = 'none';
         
-        // Hide after animation completes
-        setTimeout(() => {
-            if (modal.style.display !== 'none') {
-                modal.style.display = 'none';
-            }
-        }, 150);
-    }
+        // Clear form inputs
+        const nameInput = document.getElementById('manualProductName');
+        const priceInput = document.getElementById('manualProductPrice');
+        const qtyInput = document.getElementById('manualProductQuantity');
+        
+        if (nameInput) nameInput.value = '';
+        if (priceInput) priceInput.value = '';
+        if (qtyInput) qtyInput.value = '1';
+    }, 300);
 }
 
 function addManualProduct() {
