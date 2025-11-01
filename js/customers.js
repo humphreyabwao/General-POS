@@ -1047,18 +1047,24 @@ function exportCustomersToExcel() {
         
         // Prepare data for Excel
         const excelData = customersToExport.map(customer => {
-            const baseData = {
-                'Customer ID': customer.id,
-                'Name': customer.name,
-                'Email': customer.email,
-                'Phone': customer.phone,
-                'Type': customer.isCompany ? 'Company' : 'Individual',
-                'Status': customer.status === 'active' ? 'Active' : 'Inactive',
-                'Created Date': new Date(customer.createdAt).toLocaleDateString('en-US', {
+            const createdDateObj = customer.createdAt ? new Date(customer.createdAt) : null;
+            const hasValidDate = createdDateObj && !isNaN(createdDateObj.getTime());
+            const createdDateFormatted = hasValidDate
+                ? createdDateObj.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 })
+                : '-';
+
+            const baseData = {
+                'Customer ID': customer.id || '-',
+                'Name': customer.name || customer.companyInfo?.companyName || '-',
+                'Email': customer.email || '-',
+                'Phone': customer.phone || '-',
+                'Type': customer.isCompany ? 'Company' : 'Individual',
+                'Status': customer.status === 'active' ? 'Active' : 'Inactive',
+                'Created Date': createdDateFormatted
             };
             
             // Add company-specific fields if it's a company
@@ -1150,17 +1156,23 @@ function exportCustomersToPDF() {
         
         // Prepare table data
         const tableData = customersToExport.map(customer => {
-            const row = [
-                customer.name,
-                customer.email,
-                customer.phone,
-                customer.isCompany ? '🏢 Company' : '👤 Individual',
-                customer.status === 'active' ? 'Active' : 'Inactive',
-                new Date(customer.createdAt).toLocaleDateString('en-US', {
+            const createdDateObj = customer.createdAt ? new Date(customer.createdAt) : null;
+            const hasValidDate = createdDateObj && !isNaN(createdDateObj.getTime());
+            const createdDateFormatted = hasValidDate
+                ? createdDateObj.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric'
                 })
+                : '-';
+
+            const row = [
+                customer.name || customer.companyInfo?.companyName || '-',
+                customer.email || '-',
+                customer.phone || '-',
+                customer.isCompany ? '🏢 Company' : '👤 Individual',
+                customer.status === 'active' ? 'Active' : 'Inactive',
+                createdDateFormatted
             ];
             
             // Add company name if it's a company
