@@ -2,6 +2,15 @@
    Orders Module Styles
    =========================== */
 
+/* Table Action Buttons - Print Button */
+.table-action-btn.print {
+    background: #10b981;
+}
+
+.table-action-btn.print:hover {
+    background: #059669;
+}
+
 /* Export Dropdown */
 .export-dropdown {
     position: relative;

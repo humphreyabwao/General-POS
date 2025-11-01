@@ -306,6 +306,13 @@ function renderOrdersTable() {
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
+                        <button class="table-action-btn print" onclick="printOrder('${order.id}')" title="Print Order">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 6 2 18 2 18 9"/>
+                                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                                <rect x="6" y="14" width="12" height="8"/>
+                            </svg>
+                        </button>
                         ${order.status === 'pending' || order.status === 'confirmed' ? `
                         <button class="table-action-btn edit" onclick="updateOrderStatus('${order.id}', 'delivered')" title="Mark as Delivered">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -377,8 +384,18 @@ function clearOrderFilters() {
 // View Order Details
 // ===========================
 function viewOrder(orderId) {
+    console.log('viewOrder called with ID:', orderId);
+    console.log('Available orders:', orders);
+    
     const order = orders.find(o => o.id === orderId);
-    if (!order) return;
+    
+    if (!order) {
+        console.error('Order not found with ID:', orderId);
+        showToast('Order not found', 'error');
+        return;
+    }
+    
+    console.log('Order found:', order);
     
     const modal = document.createElement('div');
     modal.className = 'modal active';
@@ -471,11 +488,29 @@ function viewOrder(orderId) {
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
+                <button class="btn btn-primary" onclick="printOrder('${orderId}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"/>
+                        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                        <rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    Print Order
+                </button>
             </div>
         </div>
     `;
     
     document.body.appendChild(modal);
+    console.log('Modal appended to body');
+    
+    // Add click outside to close
+    setTimeout(() => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }, 100);
 }
 
 // ===========================
@@ -505,6 +540,304 @@ function confirmCancelOrder(orderId) {
     if (confirm('Are you sure you want to cancel this order?')) {
         updateOrderStatus(orderId, 'cancelled');
     }
+}
+
+// ===========================
+// Print Order
+// ===========================
+function printOrder(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+        showToast('Order not found', 'error');
+        return;
+    }
+    
+    // Create print window content
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Purchase Order - ${order.orderId}</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: 'Arial', sans-serif;
+                    padding: 40px;
+                    color: #1f2937;
+                    background: white;
+                }
+                
+                .header {
+                    text-align: center;
+                    margin-bottom: 40px;
+                    padding-bottom: 20px;
+                    border-bottom: 3px solid #3b82f6;
+                }
+                
+                .header h1 {
+                    font-size: 28px;
+                    color: #3b82f6;
+                    margin-bottom: 8px;
+                }
+                
+                .header p {
+                    font-size: 14px;
+                    color: #6b7280;
+                }
+                
+                .order-info {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 20px;
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    background: #f9fafb;
+                    border-radius: 8px;
+                }
+                
+                .info-group {
+                    margin-bottom: 12px;
+                }
+                
+                .info-label {
+                    font-size: 12px;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 4px;
+                }
+                
+                .info-value {
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: #1f2937;
+                }
+                
+                .status-badge {
+                    display: inline-block;
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                }
+                
+                .status-pending {
+                    background: #fef3c7;
+                    color: #92400e;
+                }
+                
+                .status-confirmed {
+                    background: #dbeafe;
+                    color: #1e40af;
+                }
+                
+                .status-delivered,
+                .status-completed {
+                    background: #d1fae5;
+                    color: #065f46;
+                }
+                
+                .status-cancelled {
+                    background: #fee2e2;
+                    color: #991b1b;
+                }
+                
+                .items-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                
+                .items-table thead {
+                    background: #f3f4f6;
+                }
+                
+                .items-table th {
+                    padding: 12px;
+                    text-align: left;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border-bottom: 2px solid #e5e7eb;
+                }
+                
+                .items-table td {
+                    padding: 14px 12px;
+                    font-size: 14px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                
+                .items-table tbody tr:last-child td {
+                    border-bottom: 2px solid #e5e7eb;
+                }
+                
+                .items-table tfoot td {
+                    padding: 16px 12px;
+                    font-size: 16px;
+                    font-weight: 700;
+                }
+                
+                .text-right {
+                    text-align: right;
+                }
+                
+                .text-center {
+                    text-align: center;
+                }
+                
+                .total-amount {
+                    color: #3b82f6;
+                    font-size: 18px;
+                }
+                
+                .notes-section {
+                    margin-top: 30px;
+                    padding: 20px;
+                    background: #f9fafb;
+                    border-radius: 8px;
+                    border-left: 4px solid #3b82f6;
+                }
+                
+                .notes-section h3 {
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                
+                .notes-section p {
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #1f2937;
+                }
+                
+                .footer {
+                    margin-top: 50px;
+                    padding-top: 20px;
+                    border-top: 1px solid #e5e7eb;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #6b7280;
+                }
+                
+                @media print {
+                    body {
+                        padding: 20px;
+                    }
+                    
+                    .no-print {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>PURCHASE ORDER</h1>
+                <p>General POS System</p>
+            </div>
+            
+            <div class="order-info">
+                <div>
+                    <div class="info-group">
+                        <div class="info-label">Order ID</div>
+                        <div class="info-value">${order.orderId || 'N/A'}</div>
+                    </div>
+                    <div class="info-group">
+                        <div class="info-label">Supplier</div>
+                        <div class="info-value">${order.supplier || 'Unknown'}</div>
+                    </div>
+                    ${order.reference ? `
+                    <div class="info-group">
+                        <div class="info-label">Reference</div>
+                        <div class="info-value">${order.reference}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                <div>
+                    <div class="info-group">
+                        <div class="info-label">Order Date</div>
+                        <div class="info-value">${formatDate(order.orderDate)}</div>
+                    </div>
+                    ${order.expectedDate ? `
+                    <div class="info-group">
+                        <div class="info-label">Expected Delivery</div>
+                        <div class="info-value">${formatDate(order.expectedDate)}</div>
+                    </div>
+                    ` : ''}
+                    <div class="info-group">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">
+                            <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Product Name</th>
+                        <th class="text-center">Quantity</th>
+                        <th class="text-right">Unit Price</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${order.items.map((item, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${item.name}</td>
+                            <td class="text-center">${item.quantity}</td>
+                            <td class="text-right">KSh ${parseFloat(item.price).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td class="text-right">KSh ${(item.quantity * item.price).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-right">TOTAL AMOUNT:</td>
+                        <td class="text-right total-amount">KSh ${parseFloat(order.totalAmount).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            ${order.notes ? `
+            <div class="notes-section">
+                <h3>Notes</h3>
+                <p>${order.notes}</p>
+            </div>
+            ` : ''}
+            
+            <div class="footer">
+                <p>Generated on ${new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p>General POS System - Purchase Order Management</p>
+            </div>
+            
+            <script>
+                // Auto print when loaded
+                window.onload = function() {
+                    window.print();
+                };
+            </script>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
 }
 
 // ===========================
@@ -1537,6 +1870,7 @@ window.viewOrder = viewOrder;
 window.updateOrderStatus = updateOrderStatus;
 window.confirmCancelOrder = confirmCancelOrder;
 window.exportOrders = exportOrders;
+window.printOrder = printOrder;
 window.viewSupplier = viewSupplier;
 window.editSupplier = editSupplier;
 window.confirmDeleteSupplier = confirmDeleteSupplier;
