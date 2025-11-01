@@ -675,6 +675,115 @@ function initializeAddSupplierForm() {
     if (form) {
         form.addEventListener('submit', handleAddSupplier);
     }
+    
+    // Clear form button
+    const clearBtn = document.getElementById('clearSupplierFormBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearSupplierForm);
+    }
+    
+    // Search functionality
+    const searchInput = document.getElementById('supplierSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            filterSuppliersTable(e.target.value.toLowerCase().trim());
+        });
+    }
+    
+    // Load suppliers table
+    renderSuppliersTable();
+}
+
+function clearSupplierForm() {
+    document.getElementById('addSupplierForm').reset();
+    showToast('Form cleared', 'info');
+}
+
+function filterSuppliersTable(searchTerm) {
+    const filtered = searchTerm ? 
+        suppliers.filter(s => 
+            (s.name && s.name.toLowerCase().includes(searchTerm)) ||
+            (s.phone && s.phone.includes(searchTerm)) ||
+            (s.email && s.email.toLowerCase().includes(searchTerm)) ||
+            (s.category && s.category.toLowerCase().includes(searchTerm))
+        ) : suppliers;
+    
+    renderSuppliersTable(filtered);
+}
+
+function renderSuppliersTable(suppliersToShow = null) {
+    const tbody = document.getElementById('suppliersTableBody');
+    if (!tbody) return;
+    
+    const displaySuppliers = suppliersToShow || suppliers;
+    
+    if (displaySuppliers.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 16px; opacity: 0.3;">
+                        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/>
+                        <line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                    <p style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No suppliers found</p>
+                    <p style="font-size: 14px;">Add your first supplier using the form above</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = displaySuppliers.map(supplier => `
+        <tr>
+            <td><strong>${supplier.name || 'N/A'}</strong></td>
+            <td>${supplier.phone || 'N/A'}</td>
+            <td>${supplier.email || '-'}</td>
+            <td>
+                ${supplier.category ? `<span class="badge badge-blue">${capitalizeFirst(supplier.category)}</span>` : '-'}
+            </td>
+            <td>${formatPaymentTerms(supplier.paymentTerms)}</td>
+            <td>${supplier.address || '-'}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="table-action-btn view" onclick="viewSupplier('${supplier.id}')" title="View Details">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                    <button class="table-action-btn edit" onclick="editSupplier('${supplier.id}')" title="Edit Supplier">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="table-action-btn delete" onclick="confirmDeleteSupplier('${supplier.id}')" title="Delete Supplier">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function capitalizeFirst(str) {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+function formatPaymentTerms(terms) {
+    const termsMap = {
+        'cash': 'Cash on Delivery',
+        '7days': 'Net 7 Days',
+        '14days': 'Net 14 Days',
+        '30days': 'Net 30 Days',
+        '60days': 'Net 60 Days'
+    };
+    return termsMap[terms] || terms || '-';
 }
 
 function handleAddSupplier(e) {
@@ -686,7 +795,6 @@ function handleAddSupplier(e) {
     const address = document.getElementById('supplierAddress').value.trim();
     const category = document.getElementById('supplierCategory').value;
     const paymentTerms = document.getElementById('supplierPaymentTerms').value;
-    const notes = document.getElementById('supplierNotes').value.trim();
     
     if (!name || !phone) {
         showToast('Please fill in required fields', 'error');
@@ -700,7 +808,6 @@ function handleAddSupplier(e) {
         address: address || null,
         category: category || null,
         paymentTerms: paymentTerms || 'cash',
-        notes: notes || null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -710,11 +817,175 @@ function handleAddSupplier(e) {
         .then(() => {
             showToast('Supplier added successfully', 'success');
             logActivity('supplier', `New supplier added: ${name}`);
-            navigateToPage('orders');
+            document.getElementById('addSupplierForm').reset();
         })
         .catch((error) => {
             console.error('Error adding supplier:', error);
             showToast('Failed to add supplier', 'error');
+        });
+}
+
+function viewSupplier(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Supplier Details</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; gap: 20px;">
+                    <div>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Supplier Name</p>
+                        <p style="font-size: 16px; font-weight: 600;">${supplier.name}</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <div>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Phone</p>
+                            <p style="font-size: 14px;">${supplier.phone || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Email</p>
+                            <p style="font-size: 14px;">${supplier.email || 'N/A'}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <div>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Category</p>
+                            <p style="font-size: 14px;">${supplier.category ? capitalizeFirst(supplier.category) : 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Payment Terms</p>
+                            <p style="font-size: 14px;">${formatPaymentTerms(supplier.paymentTerms)}</p>
+                        </div>
+                    </div>
+                    
+                    ${supplier.address ? `
+                    <div>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Address</p>
+                        <p style="font-size: 14px;">${supplier.address}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <div>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Added On</p>
+                        <p style="font-size: 14px;">${formatDateTime(supplier.createdAt)}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function editSupplier(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+    
+    // Populate form
+    document.getElementById('supplierName').value = supplier.name || '';
+    document.getElementById('supplierPhone').value = supplier.phone || '';
+    document.getElementById('supplierEmail').value = supplier.email || '';
+    document.getElementById('supplierCategory').value = supplier.category || '';
+    document.getElementById('supplierPaymentTerms').value = supplier.paymentTerms || 'cash';
+    document.getElementById('supplierAddress').value = supplier.address || '';
+    
+    // Change form to edit mode
+    const form = document.getElementById('addSupplierForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    submitBtn.textContent = 'Update Supplier';
+    submitBtn.onclick = (e) => {
+        e.preventDefault();
+        updateSupplier(supplierId);
+    };
+    
+    // Scroll to form
+    document.querySelector('.supplier-form-card').scrollIntoView({ behavior: 'smooth' });
+    showToast('Edit supplier details and click Update', 'info');
+}
+
+function updateSupplier(supplierId) {
+    const name = document.getElementById('supplierName').value.trim();
+    const email = document.getElementById('supplierEmail').value.trim();
+    const phone = document.getElementById('supplierPhone').value.trim();
+    const address = document.getElementById('supplierAddress').value.trim();
+    const category = document.getElementById('supplierCategory').value;
+    const paymentTerms = document.getElementById('supplierPaymentTerms').value;
+    
+    if (!name || !phone) {
+        showToast('Please fill in required fields', 'error');
+        return;
+    }
+    
+    const supplierData = {
+        name,
+        email: email || null,
+        phone,
+        address: address || null,
+        category: category || null,
+        paymentTerms: paymentTerms || 'cash',
+        updatedAt: new Date().toISOString()
+    };
+    
+    const db = firebase.database();
+    db.ref(`suppliers/${supplierId}`).update(supplierData)
+        .then(() => {
+            showToast('Supplier updated successfully', 'success');
+            logActivity('supplier', `Supplier updated: ${name}`);
+            resetSupplierForm();
+        })
+        .catch((error) => {
+            console.error('Error updating supplier:', error);
+            showToast('Failed to update supplier', 'error');
+        });
+}
+
+function resetSupplierForm() {
+    const form = document.getElementById('addSupplierForm');
+    form.reset();
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Add Supplier';
+    submitBtn.onclick = null;
+}
+
+function confirmDeleteSupplier(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+    
+    if (confirm(`Are you sure you want to delete supplier "${supplier.name}"? This action cannot be undone.`)) {
+        deleteSupplier(supplierId);
+    }
+}
+
+function deleteSupplier(supplierId) {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    
+    const db = firebase.database();
+    db.ref(`suppliers/${supplierId}`).remove()
+        .then(() => {
+            showToast('Supplier deleted successfully', 'success');
+            logActivity('supplier', `Supplier deleted: ${supplier.name}`);
+        })
+        .catch((error) => {
+            console.error('Error deleting supplier:', error);
+            showToast('Failed to delete supplier', 'error');
         });
 }
 
@@ -1049,5 +1320,8 @@ window.updateOrderStatus = updateOrderStatus;
 window.confirmCancelOrder = confirmCancelOrder;
 window.removeOrderItem = removeOrderItem;
 window.exportOrders = exportOrders;
+window.viewSupplier = viewSupplier;
+window.editSupplier = editSupplier;
+window.confirmDeleteSupplier = confirmDeleteSupplier;
 
 console.log('✅ Orders Module Loaded');

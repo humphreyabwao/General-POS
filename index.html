@@ -2221,77 +2221,118 @@
                             Back
                         </button>
                         <div>
-                            <h1>Add Supplier</h1>
-                            <p class="header-subtitle">Register a new supplier</p>
+                            <h1>Suppliers</h1>
+                            <p class="header-subtitle">Manage your suppliers</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-container" style="max-width: 700px; margin: 32px auto;">
-                    <form id="addSupplierForm" class="standard-form">
-                        <div class="form-section">
-                            <h3 class="form-section-title">Supplier Information</h3>
-                            
+                <!-- Supplier Form Card -->
+                <div class="supplier-form-card">
+                    <h3 class="form-card-title">Add New Supplier</h3>
+                    <form id="addSupplierForm">
+                        <div class="form-grid">
                             <div class="form-group">
                                 <label for="supplierName">Supplier Name *</label>
                                 <input type="text" id="supplierName" name="supplierName" class="form-control" placeholder="ABC Suppliers Ltd" required>
                             </div>
 
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="supplierEmail">Email</label>
-                                    <input type="email" id="supplierEmail" name="supplierEmail" class="form-control" placeholder="supplier@example.com">
-                                </div>
+                            <div class="form-group">
+                                <label for="supplierPhone">Phone Number *</label>
+                                <input type="tel" id="supplierPhone" name="supplierPhone" class="form-control" placeholder="0712345678" required>
+                            </div>
 
-                                <div class="form-group">
-                                    <label for="supplierPhone">Phone *</label>
-                                    <input type="tel" id="supplierPhone" name="supplierPhone" class="form-control" placeholder="0712345678" required>
-                                </div>
+                            <div class="form-group">
+                                <label for="supplierEmail">Email Address</label>
+                                <input type="email" id="supplierEmail" name="supplierEmail" class="form-control" placeholder="supplier@example.com">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="supplierCategory">Category</label>
+                                <select id="supplierCategory" name="supplierCategory" class="form-control">
+                                    <option value="">Select Category</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="furniture">Furniture</option>
+                                    <option value="food">Food & Beverages</option>
+                                    <option value="clothing">Clothing</option>
+                                    <option value="stationery">Stationery</option>
+                                    <option value="hardware">Hardware</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="supplierPaymentTerms">Payment Terms</label>
+                                <select id="supplierPaymentTerms" name="supplierPaymentTerms" class="form-control">
+                                    <option value="cash">Cash on Delivery</option>
+                                    <option value="7days">Net 7 Days</option>
+                                    <option value="14days">Net 14 Days</option>
+                                    <option value="30days">Net 30 Days</option>
+                                    <option value="60days">Net 60 Days</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
                                 <label for="supplierAddress">Address</label>
-                                <textarea id="supplierAddress" name="supplierAddress" class="form-control" rows="3" placeholder="Physical address or location"></textarea>
-                            </div>
-
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="supplierCategory">Category</label>
-                                    <select id="supplierCategory" name="supplierCategory" class="form-control">
-                                        <option value="">Select Category</option>
-                                        <option value="electronics">Electronics</option>
-                                        <option value="furniture">Furniture</option>
-                                        <option value="food">Food & Beverages</option>
-                                        <option value="clothing">Clothing</option>
-                                        <option value="stationery">Stationery</option>
-                                        <option value="hardware">Hardware</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="supplierPaymentTerms">Payment Terms</label>
-                                    <select id="supplierPaymentTerms" name="supplierPaymentTerms" class="form-control">
-                                        <option value="cash">Cash on Delivery</option>
-                                        <option value="7days">Net 7 Days</option>
-                                        <option value="14days">Net 14 Days</option>
-                                        <option value="30days">Net 30 Days</option>
-                                        <option value="60days">Net 60 Days</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="supplierNotes">Notes</label>
-                                <textarea id="supplierNotes" name="supplierNotes" class="form-control" rows="2" placeholder="Additional information about the supplier..."></textarea>
+                                <input type="text" id="supplierAddress" name="supplierAddress" class="form-control" placeholder="Physical address or location">
                             </div>
                         </div>
 
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="navigateToPage('orders')">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add Supplier</button>
+                        <div class="form-actions-inline">
+                            <button type="submit" class="btn btn-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Add Supplier
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clearSupplierFormBtn">Clear Form</button>
                         </div>
                     </form>
+                </div>
+
+                <!-- Suppliers Table -->
+                <div class="suppliers-table-section">
+                    <div class="table-header">
+                        <h3 class="table-title">All Suppliers</h3>
+                        <div class="table-search">
+                            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            <input type="text" id="supplierSearchInput" placeholder="Search suppliers..." class="search-input-small">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Supplier Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Category</th>
+                                    <th>Payment Terms</th>
+                                    <th>Address</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliersTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 16px; opacity: 0.3;">
+                                            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                            <circle cx="8.5" cy="7" r="4"/>
+                                            <line x1="20" y1="8" x2="20" y2="14"/>
+                                            <line x1="23" y1="11" x2="17" y2="11"/>
+                                        </svg>
+                                        <p style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No suppliers yet</p>
+                                        <p style="font-size: 14px;">Add your first supplier using the form above</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

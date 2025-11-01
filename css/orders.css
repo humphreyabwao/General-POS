@@ -224,7 +224,105 @@
     background-color: rgba(168, 85, 247, 0.15);
 }
 
+/* Supplier Form Card */
+.supplier-form-card {
+    background: var(--module-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.form-actions-inline {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-start;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.form-actions-inline .btn {
+    min-width: 150px;
+}
+
+/* Suppliers Table Section */
+.suppliers-table-section {
+    margin: 32px 24px;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.table-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.table-search {
+    position: relative;
+    width: 300px;
+}
+
+.table-search .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.search-input-small {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input-small:focus {
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.search-input-small::placeholder {
+    color: var(--text-secondary);
+}
+
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     .order-item-row {
         flex-direction: column;
@@ -237,5 +335,37 @@
     
     .btn-icon-danger {
         align-self: flex-end;
+    }
+    
+    .supplier-form-card {
+        padding: 24px 20px;
+        margin: 16px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .form-actions-inline {
+        flex-direction: column;
+    }
+    
+    .form-actions-inline .btn {
+        width: 100%;
+    }
+    
+    .suppliers-table-section {
+        margin: 24px 16px;
+    }
+    
+    .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .table-search {
+        width: 100%;
     }
 }
