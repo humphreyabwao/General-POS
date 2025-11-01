@@ -1500,8 +1500,59 @@ async function submitB2BOrder() {
     const taxAmount = (afterDiscount * taxPercent) / 100;
     const grandTotal = afterDiscount + taxAmount;
     
+    // Find or auto-create customer
+    let customer = findCustomerByPhoneOrName(customerPhone, customerName);
+    let customerId = null;
+    
+    if (customer) {
+        customerId = customer.id;
+        console.log('✅ B2B Customer found:', customer.name || customer.companyName);
+        
+        // Update customer order count and total spent
+        updateCustomerOrderCount(customer.id, 1);
+        updateCustomerTotalSpent(customer.id, grandTotal);
+        
+        showToast(`Order linked to customer: ${customer.name || customer.companyName}`, 'info', 2000);
+    } else {
+        // Auto-create customer if not found
+        console.log('⚠️ Customer not found, creating new customer record...');
+        
+        const newCustomer = {
+            id: 'CUST' + Date.now(),
+            name: customerName,
+            companyName: customerCompany || '',
+            phone: customerPhone,
+            email: customerEmail,
+            address: customerAddress,
+            isCompany: !!customerCompany,
+            companyInfo: customerCompany ? {
+                companyName: customerCompany,
+                contactPerson: customerName,
+                registrationNumber: ''
+            } : null,
+            type: 'wholesale',
+            status: 'active',
+            totalOrders: 1,
+            totalSpent: grandTotal,
+            lastOrderDate: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            notes: 'Auto-created from B2B order'
+        };
+        
+        try {
+            // Save new customer to Firebase
+            await database.ref(`customers/${newCustomer.id}`).set(newCustomer);
+            customerId = newCustomer.id;
+            console.log('✅ New customer created:', newCustomer.name);
+            showToast('New customer created and linked to order', 'success', 2000);
+        } catch (error) {
+            console.error('Error creating customer:', error);
+        }
+    }
+    
     // Create order object
     const order = {
+        customerId: customerId,
         customerName,
         customerCompany,
         customerPhone,
@@ -1526,7 +1577,7 @@ async function submitB2BOrder() {
         const db = firebase.database();
         await db.ref('b2bOrders').push(order);
         
-        showToast('Order created successfully!', 'success', 2000);
+        showToast('B2B Order created successfully!', 'success', 2000);
         
         // Reset form
         resetB2BForm();

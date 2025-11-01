@@ -34,6 +34,13 @@ function initializeCustomersModule() {
         applyCustomersFiltersAndDisplay();
     });
     
+    // Listen for customer order updates from other modules
+    StateEvents.on('customerOrderUpdated', (data) => {
+        const { customerId, totalOrders } = data;
+        console.log(`📊 Customer order updated: ${customerId} -> ${totalOrders} orders`);
+        updateCustomerOrderCountDisplay(customerId, totalOrders);
+    });
+    
     // Load initial data if available
     if (AppState.isInitialized && AppState.customers && AppState.customers.length > 0) {
         customersCache = [...AppState.customers];
@@ -399,28 +406,53 @@ function createCustomerTableRow(customer) {
 // ===========================
 function attachRowEventListeners(row, customer) {
     // View button
-    row.querySelector('.action-view')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        viewCustomerDetails(customer);
-    });
+    const viewBtn = row.querySelector('.action-view');
+    console.log('🔍 Attaching listeners. View button found:', !!viewBtn, 'Customer:', customer?.name || customer?.id);
+    
+    if (viewBtn) {
+        viewBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('👁️ View button clicked for customer:', customer);
+            try {
+                viewCustomerDetails(customer);
+            } catch (error) {
+                console.error('❌ Error opening customer details:', error);
+                showToast('Error opening customer details', 'error', 2000);
+            }
+        });
+    } else {
+        console.error('❌ View button not found in row!');
+    }
     
     // Edit button
-    row.querySelector('.action-edit')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        editCustomer(customer);
-    });
+    const editBtn = row.querySelector('.action-edit');
+    if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('✏️ Edit button clicked');
+            editCustomer(customer);
+        });
+    }
     
     // WhatsApp button
-    row.querySelector('.action-whatsapp')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        sendWhatsAppMessage(customer);
-    });
+    const whatsappBtn = row.querySelector('.action-whatsapp');
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('💬 WhatsApp button clicked');
+            sendWhatsAppMessage(customer);
+        });
+    }
     
     // Delete button
-    row.querySelector('.action-delete')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteCustomer(customer);
-    });
+    const deleteBtn = row.querySelector('.action-delete');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('🗑️ Delete button clicked');
+            deleteCustomer(customer);
+        });
+    }
 }
 
 // ===========================
@@ -662,6 +694,111 @@ async function handleCustomerFormSubmit(e) {
 }
 
 // ===========================
+// Update Order Count Display
+// ===========================
+function updateCustomerOrderCountDisplay(customerId, totalOrders) {
+    // Find the row for this customer
+    const tableBody = document.querySelector('#customersTableBody');
+    if (!tableBody) return;
+    
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const viewBtn = row.querySelector('.action-view');
+        if (viewBtn && viewBtn.dataset.customerId === customerId) {
+            const orderCell = row.cells[4]; // Total Orders column
+            if (orderCell) {
+                orderCell.textContent = totalOrders;
+                
+                // Add animation
+                orderCell.classList.add('count-updated');
+                setTimeout(() => {
+                    orderCell.classList.remove('count-updated');
+                }, 1000);
+            }
+            
+            // Also update total spent if customer exists in cache
+            const customer = customersCache.find(c => c.id === customerId);
+            if (customer) {
+                const spentCell = row.cells[5]; // Total Spent column
+                if (spentCell) {
+                    spentCell.textContent = 'KES ' + formatCurrency(customer.totalSpent || 0);
+                }
+            }
+        }
+    });
+}
+
+// ===========================
+// Manual Order Count Update
+// ===========================
+function showManualOrderCountModal(customer) {
+    const modalHtml = `
+        <div class="modal active" id="manualOrderCountModal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>Update Order Count</h2>
+                    <button class="modal-close" onclick="document.getElementById('manualOrderCountModal').remove()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 8px;"><strong>Customer:</strong> ${escapeHtml(customer.name || customer.companyName)}</p>
+                    <p style="margin-bottom: 20px;"><strong>Current Total Orders:</strong> ${customer.totalOrders || 0}</p>
+                    <div class="form-group">
+                        <label for="manualOrderCount">New Total Orders:</label>
+                        <input type="number" id="manualOrderCount" class="form-control" value="${customer.totalOrders || 0}" min="0" step="1">
+                        <small style="color: var(--text-secondary); margin-top: 4px; display: block;">Enter the total number of orders for this customer</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('manualOrderCountModal').remove()">Cancel</button>
+                    <button class="btn btn-primary" onclick="updateManualOrderCount('${customer.id}')">Update</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+window.updateManualOrderCount = function(customerId) {
+    const input = document.getElementById('manualOrderCount');
+    const newCount = parseInt(input.value);
+    
+    if (isNaN(newCount) || newCount < 0) {
+        showToast('Please enter a valid number', 'error', 2000);
+        return;
+    }
+    
+    // Update in Firebase
+    database.ref(`customers/${customerId}`).update({
+        totalOrders: newCount,
+        lastOrderDate: new Date().toISOString()
+    }).then(() => {
+        showToast('Order count updated successfully', 'success', 2000);
+        
+        // Update local cache
+        const customer = customersCache.find(c => c.id === customerId);
+        if (customer) {
+            customer.totalOrders = newCount;
+            customer.lastOrderDate = new Date().toISOString();
+        }
+        
+        // Update display
+        updateCustomerOrderCountDisplay(customerId, newCount);
+        
+        // Close modal
+        document.getElementById('manualOrderCountModal').remove();
+    }).catch(error => {
+        console.error('Error updating order count:', error);
+        showToast('Error updating order count', 'error', 3000);
+    });
+};
+
+// ===========================
 // Send WhatsApp Message
 // ===========================
 function sendWhatsAppMessage(customer) {
@@ -710,9 +847,24 @@ async function deleteCustomer(customer) {
 // View Customer Details
 // ===========================
 function viewCustomerDetails(customer) {
+    console.log('📋 Opening customer details modal for:', customer);
+    
+    if (!customer) {
+        console.error('❌ No customer data provided');
+        showToast('Customer data not found', 'error', 2000);
+        return;
+    }
+    
+    // Remove any existing modals first
+    const existingModal = document.getElementById('customerDetailModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
     const modal = document.createElement('div');
     modal.className = 'modal active';
     modal.id = 'customerDetailModal';
+    modal.style.display = 'flex'; // Force display immediately
     
     const createdDate = new Date(customer.createdAt).toLocaleDateString();
     const customerTypeLabel = customer.isCompany ? '🏢 Company' : '👤 Individual';
@@ -777,11 +929,20 @@ function viewCustomerDetails(customer) {
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Total Orders</span>
-                        <span class="detail-value">${customer.totalOrders || 0}</span>
+                        <span class="detail-value">
+                            ${customer.totalOrders || 0}
+                            <button class="btn btn-secondary btn-sm" style="margin-left: 10px; padding: 4px 12px; font-size: 12px;" data-customer-id="${customer.id}" id="updateOrderCountBtn">
+                                Update
+                            </button>
+                        </span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Total Spent</span>
                         <span class="detail-value">KES ${formatCurrency(customer.totalSpent || 0)}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Last Order Date</span>
+                        <span class="detail-value">${customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : 'Never'}</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Member Since</span>
@@ -802,6 +963,7 @@ function viewCustomerDetails(customer) {
     `;
     
     document.body.appendChild(modal);
+    console.log('✅ Customer details modal added to DOM and displayed');
     
     // Close modal on outside click
     modal.addEventListener('click', (e) => {
@@ -809,6 +971,16 @@ function viewCustomerDetails(customer) {
             modal.remove();
         }
     });
+    
+    // Add event listener for update button
+    const updateBtn = document.getElementById('updateOrderCountBtn');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modal.remove();
+            showManualOrderCountModal(customer);
+        });
+    }
 }
 
 // ===========================
@@ -1085,5 +1257,11 @@ function exportCustomersToPDF() {
         showToast('Error exporting to PDF: ' + error.message, 'error', 3000);
     }
 }
+
+// Export functions to global scope
+window.showManualOrderCountModal = showManualOrderCountModal;
+window.viewCustomerDetails = viewCustomerDetails;
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
 
 console.log('✅ Customers Module Loaded');

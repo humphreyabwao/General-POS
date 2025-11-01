@@ -511,6 +511,113 @@ function logActivity(type, description, user, module, details = '') {
 }
 
 // ===========================
+// Customer Order Tracking Functions
+// ===========================
+function updateCustomerOrderCount(customerId, increment = 1) {
+    const customer = AppState.customers.find(c => c.id === customerId);
+    if (customer) {
+        customer.totalOrders = (customer.totalOrders || 0) + increment;
+        customer.lastOrderDate = new Date().toISOString();
+        
+        // Update in Firebase
+        database.ref(`customers/${customerId}`).update({
+            totalOrders: customer.totalOrders,
+            lastOrderDate: customer.lastOrderDate
+        }).catch(error => {
+            console.error('Error updating customer order count in Firebase:', error);
+        });
+        
+        // Dispatch event for real-time updates
+        StateEvents.emit('customerOrderUpdated', {
+            customerId,
+            totalOrders: customer.totalOrders
+        });
+        
+        console.log(`✅ Customer ${customerId} order count updated: ${customer.totalOrders}`);
+        return customer.totalOrders;
+    }
+    return 0;
+}
+
+function updateCustomerTotalSpent(customerId, amount) {
+    const customer = AppState.customers.find(c => c.id === customerId);
+    if (customer) {
+        customer.totalSpent = (customer.totalSpent || 0) + amount;
+        
+        // Update in Firebase
+        database.ref(`customers/${customerId}`).update({
+            totalSpent: customer.totalSpent
+        }).catch(error => {
+            console.error('Error updating customer total spent in Firebase:', error);
+        });
+        
+        return customer.totalSpent;
+    }
+    return 0;
+}
+
+function findCustomerByPhone(phone) {
+    if (!phone) return null;
+    
+    // Normalize phone number (remove spaces, dashes, parentheses, etc.)
+    const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    return AppState.customers.find(c => {
+        if (!c.phone) return false;
+        const customerPhone = c.phone.replace(/[\s\-\(\)]/g, '');
+        
+        // Exact match
+        if (customerPhone === normalizedPhone) return true;
+        
+        // Match last 9 digits (for different country code formats)
+        if (customerPhone.length >= 9 && normalizedPhone.length >= 9) {
+            return customerPhone.slice(-9) === normalizedPhone.slice(-9);
+        }
+        
+        return false;
+    });
+}
+
+function findCustomerByName(name) {
+    if (!name) return null;
+    
+    const lowerName = name.toLowerCase().trim();
+    
+    return AppState.customers.find(c => {
+        const customerName = (c.name || '').toLowerCase();
+        const companyName = (c.companyName || '').toLowerCase();
+        
+        return customerName.includes(lowerName) || 
+               companyName.includes(lowerName) ||
+               lowerName.includes(customerName) ||
+               lowerName.includes(companyName);
+    });
+}
+
+function findCustomerByPhoneOrName(phone, name) {
+    // Try phone first (more reliable)
+    if (phone) {
+        const customerByPhone = findCustomerByPhone(phone);
+        if (customerByPhone) {
+            console.log('✅ Customer found by phone:', customerByPhone.name || customerByPhone.companyName);
+            return customerByPhone;
+        }
+    }
+    
+    // Fallback to name
+    if (name) {
+        const customerByName = findCustomerByName(name);
+        if (customerByName) {
+            console.log('✅ Customer found by name:', customerByName.name || customerByName.companyName);
+            return customerByName;
+        }
+    }
+    
+    console.log('⚠️ Customer not found');
+    return null;
+}
+
+// ===========================
 // Export Global Functions
 // ===========================
 window.AppState = AppState;
@@ -532,3 +639,8 @@ window.formatCurrency = formatCurrency;
 window.formatDate = formatDate;
 window.formatDateTime = formatDateTime;
 window.logActivity = logActivity;
+window.updateCustomerOrderCount = updateCustomerOrderCount;
+window.updateCustomerTotalSpent = updateCustomerTotalSpent;
+window.findCustomerByPhone = findCustomerByPhone;
+window.findCustomerByName = findCustomerByName;
+window.findCustomerByPhoneOrName = findCustomerByPhoneOrName;

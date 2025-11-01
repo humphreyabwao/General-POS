@@ -884,10 +884,14 @@ function closeCheckoutModal() {
         const amountInput = document.getElementById('posAmountReceived');
         const mpesaInput = document.getElementById('posMpesaCode');
         const cardInput = document.getElementById('posCardNumber');
+        const customerPhoneInput = document.getElementById('posCustomerPhone');
+        const customerNameInput = document.getElementById('posCustomerName');
         
         if (amountInput) amountInput.value = '';
         if (mpesaInput) mpesaInput.value = '';
         if (cardInput) cardInput.value = '';
+        if (customerPhoneInput) customerPhoneInput.value = '';
+        if (customerNameInput) customerNameInput.value = '';
         
         // Reset change display
         const changeDisplay = document.getElementById('posChange');
@@ -914,10 +918,41 @@ async function processSale() {
     confirmBtn.innerHTML = '<span class="btn-loading">Processing...</span>';
     
     try {
+        // Get customer info if provided
+        const customerPhone = document.getElementById('posCustomerPhone')?.value.trim();
+        const customerName = document.getElementById('posCustomerName')?.value.trim();
+        
+        // Find customer by phone or name
+        let customer = null;
+        let customerId = null;
+        let customerDisplayName = 'Walk-in Customer';
+        
+        if (customerPhone || customerName) {
+            customer = findCustomerByPhoneOrName(customerPhone, customerName);
+            
+            if (customer) {
+                customerId = customer.id;
+                customerDisplayName = customer.name || customer.companyName || customerName;
+                console.log('✅ Customer found:', customerDisplayName);
+                
+                // Update customer order count and total spent
+                updateCustomerOrderCount(customer.id, 1);
+                updateCustomerTotalSpent(customer.id, cartTotal);
+                
+                showToast(`Sale linked to customer: ${customerDisplayName}`, 'success', 2000);
+            } else if (customerPhone || customerName) {
+                console.log('⚠️ Customer not found, recording as walk-in with provided info');
+                customerDisplayName = customerName || customerPhone;
+            }
+        }
+        
         // Prepare sale data
         const saleData = {
             saleNumber: generateSaleNumber(),
             date: new Date().toISOString(),
+            customerId: customerId,
+            customerName: customerDisplayName,
+            customerPhone: customerPhone || (customer?.phone || ''),
             items: cart.map(item => ({
                 productId: item.id,
                 name: item.name,

@@ -397,6 +397,17 @@
     color: #dc2626;
 }
 
+/* Order Count Update Animation */
+.count-updated {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+    transform: scale(1.1);
+    transition: all 0.3s ease;
+}
+
 /* Action Buttons */
 .table-action-buttons {
     display: flex;
