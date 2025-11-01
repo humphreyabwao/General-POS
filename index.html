@@ -11,6 +11,51 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/sales.css">
     <link rel="stylesheet" href="css/b2b.css">
+    <style>
+        /* Override B2B green gradient for POS module - use clean white background */
+        .pos-container .totals-summary .total-row {
+            background: transparent !important;
+            color: #0f172a !important;
+            padding: 12px 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .pos-container .totals-summary .total-row:last-child {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .pos-container .totals-summary .total-row span {
+            color: #64748b !important;
+        }
+
+        .pos-container .totals-summary .total-row span:last-child {
+            color: #0f172a !important;
+            font-weight: 600;
+        }
+
+        .pos-container .totals-summary .grand-total {
+            background: white !important;
+            padding-top: 16px !important;
+            border-top: 2px solid #e5e7eb !important;
+            border-bottom: none !important;
+        }
+
+        .pos-container .totals-summary .grand-total span {
+            color: #0f172a !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+        }
+
+        .pos-container .totals-summary .grand-total span:last-child {
+            color: #0ea5e9 !important;
+            font-size: 20px !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar -->

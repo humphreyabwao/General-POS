@@ -1008,18 +1008,24 @@ textarea.form-control {
     font-weight: 600;
 }
 
-.total-row {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    padding: 16px;
-    margin: 16px -20px -20px;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+/* Only apply green gradient to B2B module total-row, not POS */
+.b2b-module .total-row {
+    background: transparent;
+    color: #0f172a;
+    padding: 12px 0;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-.total-row label,
-.total-row .total-value {
-    color: white;
+.b2b-module .total-row:last-child {
+    border-bottom: none;
+}
+
+.b2b-module .total-row label,
+.b2b-module .total-row .total-value {
+    color: #0f172a;
 }
 
 .total-value {
