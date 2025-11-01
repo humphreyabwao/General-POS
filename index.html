@@ -58,12 +58,16 @@
             font-size: 20px !important;
         }
 
-        /* Protect dashboard quick action buttons from B2B CSS conflicts */
+        /* Clean dashboard quick action buttons styling */
         .quick-actions .action-btn {
             width: auto !important;
             height: auto !important;
-            padding: 22px 24px !important;
             display: flex !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .quick-actions .action-btn:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
         }
     </style>
 </head>
