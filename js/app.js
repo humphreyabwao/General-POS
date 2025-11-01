@@ -332,11 +332,35 @@ function initializeModulePage(page) {
                 initializeB2BModule();
             }
             break;
+        case 'b2b-new-sale':
+            if (typeof initializeB2BOrderForm === 'function') {
+                initializeB2BOrderForm();
+                // Try to load draft
+                if (typeof loadB2BDraft === 'function') {
+                    loadB2BDraft();
+                }
+            }
+            break;
         default:
             // Other modules can be initialized here
             break;
     }
 }
+
+// ===========================
+// Navigation Helper
+// ===========================
+function navigateToPage(pageName) {
+    const link = document.querySelector(`[data-page="${pageName}"]`);
+    if (link) {
+        link.click();
+    } else {
+        console.error(`Navigation link not found for page: ${pageName}`);
+    }
+}
+
+// Make navigateToPage available globally
+window.navigateToPage = navigateToPage;
 
 // ===========================
 // Utility Functions
