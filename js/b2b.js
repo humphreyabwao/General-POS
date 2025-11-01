@@ -164,6 +164,63 @@ function initializeB2BButtons() {
             }
         });
     }
+    
+    // Initialize Marketing Link Generator
+    initializeMarketingLinkGenerator();
+}
+
+// ===========================
+// Marketing Link Generator
+// ===========================
+function initializeMarketingLinkGenerator() {
+    const generateBtn = document.getElementById('generateMarketingLinkBtn');
+    const copyBtn = document.getElementById('copyMarketingLinkBtn');
+    const linkInput = document.getElementById('marketingLinkInput');
+    
+    if (!generateBtn || !copyBtn || !linkInput) return;
+    
+    // Generate Link Button
+    generateBtn.addEventListener('click', () => {
+        // Get current URL and create field order link
+        const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
+        const marketingLink = baseUrl + 'field-order.html';
+        
+        linkInput.value = marketingLink;
+        copyBtn.disabled = false;
+        
+        showToast('Marketing link generated!', 'success', 2000);
+    });
+    
+    // Copy Link Button
+    copyBtn.addEventListener('click', () => {
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999); // For mobile devices
+        
+        navigator.clipboard.writeText(linkInput.value).then(() => {
+            showToast('Link copied to clipboard!', 'success', 2000);
+            
+            // Visual feedback
+            copyBtn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Copied!
+            `;
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copy Link
+                `;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            showToast('Failed to copy link', 'error', 2000);
+        });
+    });
 }
 
 // ===========================

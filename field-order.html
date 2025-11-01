@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Order - Vendly POS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/b2b.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0ea5e9;
+            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .field-order-container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .field-order-header {
+            background: #0ea5e9;
+            padding: 40px 32px;
+            color: white;
+            text-align: center;
+        }
+
+        .field-order-header h1 {
+            margin: 0 0 12px 0;
+            font-size: 32px;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .field-order-header p {
+            margin: 0;
+            font-size: 17px;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+
+        .field-order-content {
+            padding: 40px;
+            background: #f8fafc;
+        }
+
+        .b2b-form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            color: #0284c7;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #0ea5e9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #10b981;
+            border-radius: 2px;
+        }
+
+        .cart-count {
+            margin-left: auto;
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Search Results Dropdown */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #0ea5e9;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #eff6ff;
+        }
+
+        .result-info {
+            flex: 1;
+        }
+
+        .result-name {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+
+        .result-sku {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .result-price {
+            font-weight: 700;
+            color: #0ea5e9;
+            margin-left: 16px;
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .b2b-product-search {
+            margin-bottom: 20px;
+        }
+
+        .b2b-product-search .btn {
+            width: auto;
+        }
+
+        /* Cart Table Styles */
+        .cart-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+        }
+
+        .cart-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cart-table thead {
+            background: #f1f5f9;
+        }
+
+        .cart-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .cart-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+
+        .cart-item-sku {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .qty-input {
+            width: 55px;
+            height: 32px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .remove-item-btn {
+            padding: 8px;
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: #dc2626;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .calculation-panel,
+        .total-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .calc-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .calc-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .calc-row label {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .calc-input {
+            width: 100px;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .total-panel .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+            background: transparent !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
+
+        .total-panel .total-row:last-child {
+            border-bottom: none;
+        }
+
+        .total-panel .total-row span {
+            color: #64748b !important;
+            font-weight: 500;
+        }
+
+        .total-panel .total-row strong {
+            color: #0f172a !important;
+            font-weight: 700;
+        }
+
+        .promo-panel textarea {
+            width: 100%;
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .form-group label.required::after {
+            content: ' *';
+            color: #ef4444;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content-wrapper {
+            background: white;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .close-modal {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f3f4f6;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            min-width: 250px;
+        }
+
+        .toast.show {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast.success {
+            border-left: 5px solid #10b981;
+        }
+
+        .toast.success::before {
+            content: '✓';
+            width: 24px;
+            height: 24px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .toast.error {
+            border-left: 5px solid #ef4444;
+        }
+
+        .toast.error::before {
+            content: '✕';
+            width: 24px;
+            height: 24px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .submit-section {
+            margin-top: 32px;
+            padding: 28px;
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-primary {
+            background: #0ea5e9 !important;
+            border: none !important;
+            color: white !important;
+            font-weight: 600 !important;
+            padding: 12px 24px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
+        }
+
+        .btn-primary:hover {
+            background: #0284c7 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4) !important;
+        }
+
+        .btn-secondary {
+            background: white !important;
+            border: 2px solid #10b981 !important;
+            color: #059669 !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .btn-secondary:hover {
+            background: #10b981 !important;
+            color: white !important;
+        }
+
+        .form-control:focus {
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1) !important;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 60px 40px;
+            background: white;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 28px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-message h2 {
+            color: #10b981;
+            margin-bottom: 24px;
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .success-message p {
+            color: #6b7280;
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+        .order-id-box {
+            background: #dbeafe;
+            border: 2px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .order-id-label {
+            font-size: 14px;
+            color: #0369a1;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .order-id-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #0284c7;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        .order-id-note {
+            font-size: 13px;
+            color: #0369a1;
+            margin-bottom: 0;
+            font-style: italic;
+        }
+
+        .success-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .track-order-btn {
+            background: white !important;
+            border: 2px solid #0ea5e9 !important;
+            color: #0284c7 !important;
+        }
+
+        .track-order-btn:hover {
+            background: #eff6ff !important;
+        }
+
+        .calc-input:focus {
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1) !important;
+        }
+
+        .total-panel .grand-total {
+            background: white !important;
+            color: #0f172a !important;
+            padding: 16px 0 !important;
+            border-radius: 0 !important;
+            border-top: 2px solid #e5e7eb !important;
+            font-size: 18px !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .total-panel .grand-total span {
+            color: #0f172a !important;
+            font-weight: 700;
+        }
+
+        .total-panel .grand-total strong {
+            color: #0ea5e9 !important;
+            font-size: 20px;
+        }
+
+        .qty-btn:hover {
+            background: #0ea5e9 !important;
+            color: white !important;
+        }
+
+        .remove-item-btn:hover {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .field-order-container {
+                border-radius: 12px;
+            }
+
+            .field-order-header {
+                padding: 24px 16px;
+            }
+
+            .field-order-header h1 {
+                font-size: 24px;
+            }
+
+            .field-order-header p {
+                font-size: 14px;
+            }
+
+            .field-order-content {
+                padding: 16px;
+            }
+
+            .b2b-form-section {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .section-title {
+                font-size: 16px;
+                flex-wrap: wrap;
+            }
+
+            .cart-count {
+                margin-left: 0;
+                margin-top: 8px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+
+            .form-group.full-width {
+                grid-column: 1;
+            }
+
+            .search-wrapper {
+                margin-bottom: 12px;
+            }
+
+            .cart-table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .cart-table {
+                min-width: 600px;
+            }
+
+            .cart-table th,
+            .cart-table td {
+                padding: 8px 6px;
+                font-size: 13px;
+            }
+
+            .cart-item-name {
+                font-size: 13px;
+            }
+
+            .cart-item-sku {
+                font-size: 11px;
+            }
+
+            .quantity-controls {
+                gap: 4px;
+            }
+
+            .qty-btn {
+                width: 28px;
+                height: 28px;
+            }
+
+            .qty-input {
+                width: 45px;
+                font-size: 13px;
+                padding: 4px;
+            }
+
+            .remove-item-btn {
+                padding: 6px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr !important;
+                gap: 16px;
+            }
+
+            .calculation-panel {
+                order: 1;
+            }
+
+            .total-panel {
+                order: 2;
+            }
+
+            .calc-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .calc-row label {
+                margin-bottom: 6px;
+            }
+
+            .calc-input {
+                width: 100%;
+            }
+
+            .total-row {
+                font-size: 14px;
+            }
+
+            .grand-total {
+                font-size: 16px !important;
+            }
+
+            .submit-section {
+                padding: 16px;
+                flex-direction: column-reverse;
+                gap: 8px;
+            }
+
+            .submit-section button {
+                width: 100%;
+                padding: 14px 20px !important;
+                font-size: 15px;
+            }
+
+            .success-message {
+                padding: 40px 20px;
+            }
+
+            .success-icon {
+                width: 80px;
+                height: 80px;
+            }
+
+            .success-message h2 {
+                font-size: 22px;
+            }
+
+            .success-message p {
+                font-size: 14px;
+            }
+
+            .order-id-box {
+                padding: 20px;
+            }
+
+            .order-id-value {
+                font-size: 24px;
+            }
+
+            .success-buttons {
+                flex-direction: column;
+            }
+
+            .success-buttons button {
+                width: 100%;
+            }
+
+            .toast {
+                left: 10px;
+                right: 10px;
+                min-width: auto;
+            }
+
+            .search-results {
+                max-height: 250px;
+            }
+
+            .search-result-item {
+                padding: 10px 12px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .result-price {
+                margin-left: 0;
+                margin-top: 6px;
+                font-size: 14px;
+            }
+
+            .modal-content-wrapper {
+                max-width: calc(100vw - 20px) !important;
+                margin: 10px;
+            }
+
+            .modal-body {
+                padding: 16px;
+            }
+
+            .modal-footer {
+                padding: 12px 16px;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .modal-footer button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .field-order-header h1 {
+                font-size: 20px;
+            }
+
+            .field-order-header p {
+                font-size: 13px;
+            }
+
+            .section-title {
+                font-size: 15px;
+            }
+
+            .form-control {
+                font-size: 14px;
+                padding: 10px 12px;
+            }
+
+            .btn {
+                font-size: 14px;
+            }
+
+            .cart-table {
+                min-width: 550px;
+            }
+
+            .cart-table th,
+            .cart-table td {
+                padding: 6px 4px;
+                font-size: 12px;
+            }
+
+            .success-message h2 {
+                font-size: 20px;
+            }
+
+            .order-id-value {
+                font-size: 20px;
+                letter-spacing: 1px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="field-order-container">
+        <div class="field-order-header">
+            <h1>📦 Create Field Order</h1>
+            <p>Vendly POS - Wholesale Order Form</p>
+        </div>
+
+        <div class="field-order-content" id="orderFormSection">
+            <div class="b2b-order-form">
+                <!-- Customer Information Section -->
+                <div class="b2b-form-section">
+                    <h3 class="section-title">Customer Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="customerName" class="required">Customer Name</label>
+                            <input type="text" id="customerName" class="form-control" placeholder="Enter customer name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customerCompany">Company Name</label>
+                            <input type="text" id="customerCompany" class="form-control" placeholder="Enter company name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customerPhone" class="required">Phone Number</label>
+                            <input type="tel" id="customerPhone" class="form-control" placeholder="e.g., 0712345678" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customerEmail">Email Address</label>
+                            <input type="email" id="customerEmail" class="form-control" placeholder="customer@example.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="attendant" class="required">Marketer Name</label>
+                            <input type="text" id="attendant" class="form-control" placeholder="Your name" required>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="customerAddress">Delivery Address</label>
+                            <textarea id="customerAddress" class="form-control" rows="2" placeholder="Enter delivery address"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Selection Section -->
+                <div class="b2b-form-section">
+                    <h3 class="section-title">Add Products</h3>
+                    
+                    <div class="b2b-product-search">
+                        <div class="search-wrapper">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="productSearch" 
+                                class="form-control" 
+                                placeholder="Search products by name or SKU..."
+                            />
+                        </div>
+                        <div id="searchResults" class="search-results"></div>
+                        
+                        <button type="button" class="btn btn-secondary" id="manualAddBtn" style="margin-top: 12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Product Manually
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cart Section -->
+                <div class="b2b-form-section">
+                    <h3 class="section-title">
+                        Order Items
+                        <span class="cart-count" id="cartCount">0 items</span>
+                    </h3>
+                    
+                    <div class="cart-table-wrapper">
+                        <table class="cart-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartBody">
+                                <tr class="empty-cart-row">
+                                    <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
+                                        <p>No items in cart</p>
+                                        <span style="font-size: 12px;">Search and add products to create an order</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Calculations Section -->
+                <div class="b2b-form-section">
+                    <h3 class="section-title">Order Summary</h3>
+                    
+                    <div class="summary-grid">
+                        <div class="calculation-panel">
+                            <div class="calc-row">
+                                <label>Discount (%)</label>
+                                <input type="number" id="discountPercent" class="calc-input" value="0" min="0" max="100" step="0.5">
+                            </div>
+                            <div class="calc-row">
+                                <label>Tax/VAT (%)</label>
+                                <input type="number" id="taxPercent" class="calc-input" value="0" min="0" max="100" step="0.5">
+                            </div>
+                        </div>
+                        
+                        <div class="total-panel">
+                            <div class="total-row">
+                                <span>Subtotal:</span>
+                                <strong id="subtotalDisplay">KSh 0.00</strong>
+                            </div>
+                            <div class="total-row">
+                                <span>Discount:</span>
+                                <strong id="discountDisplay">KSh 0.00</strong>
+                            </div>
+                            <div class="total-row">
+                                <span>Tax/VAT:</span>
+                                <strong id="taxDisplay">KSh 0.00</strong>
+                            </div>
+                            <div class="total-row grand-total">
+                                <span>Grand Total:</span>
+                                <strong id="grandTotalDisplay">KSh 0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promotional Message -->
+                <div class="b2b-form-section">
+                    <h3 class="section-title">Additional Notes</h3>
+                    <div class="promo-panel">
+                        <textarea id="promoMessage" class="form-control" rows="3" placeholder="Add any special notes or promotional messages...">Thank you for your business!</textarea>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="submit-section">
+                    <button type="button" class="btn btn-secondary" id="resetBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                            <path d="M21 3v5h-5"></path>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                            <path d="M3 21v-5h5"></path>
+                        </svg>
+                        Reset Form
+                    </button>
+                    <button type="button" class="btn btn-primary" id="submitOrderBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Submit Order
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div class="success-message" id="successMessage">
+            <div class="success-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h2>Order Submitted Successfully!</h2>
+            <div class="order-id-box">
+                <p class="order-id-label">Your Order ID</p>
+                <p class="order-id-value" id="orderIdDisplay">ORD-XXXXXXXX</p>
+                <p class="order-id-note">Please save this ID to track your order</p>
+            </div>
+            <p>Your wholesale order has been received and will be processed shortly.</p>
+            <div class="success-buttons">
+                <button class="btn btn-secondary track-order-btn" id="trackOrderBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    Track Your Order
+                </button>
+                <button class="btn btn-primary" id="createAnotherBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Create Another Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Product Modal -->
+    <div id="manualProductModal" class="modal">
+        <div class="modal-content-wrapper" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Add Product Manually</h2>
+                <button class="close-modal" type="button" onclick="closeManualModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="manualProductName" class="required">Product Name</label>
+                    <input type="text" id="manualProductName" class="form-control" placeholder="Enter product name">
+                </div>
+                <div class="form-group">
+                    <label for="manualProductPrice" class="required">Unit Price (KSh)</label>
+                    <input type="number" id="manualProductPrice" class="form-control" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="manualProductQty" class="required">Quantity</label>
+                    <input type="number" id="manualProductQty" class="form-control" placeholder="1" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="manualProductDesc">Description</label>
+                    <textarea id="manualProductDesc" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeManualModal()">Cancel</button>
+                <button class="btn btn-primary" id="addManualProductBtn">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
+    <script src="js/field-order.js"></script>
+</body>
+</html>
