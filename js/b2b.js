@@ -450,6 +450,10 @@ function viewB2BOrder(orderId) {
                         <p>${order.customerPhone || 'N/A'}</p>
                     </div>
                     <div class="detail-item">
+                        <label>Served By</label>
+                        <p>${order.attendant || 'Staff'}</p>
+                    </div>
+                    <div class="detail-item">
                         <label>Status</label>
                         <p><span class="status-badge status-${(order.status || 'pending').toLowerCase()}">${order.status || 'Pending'}</span></p>
                     </div>
@@ -636,84 +640,337 @@ function printB2BInvoice(orderId) {
         </tr>
     `).join('');
     
-    const printWindow = window.open('', '', 'width=800,height=600');
+    const printWindow = window.open('', '', 'width=900,height=700');
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>Invoice - ${formatB2BOrderId(order.id)}</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .invoice-details { margin-bottom: 30px; }
-                .invoice-details table { width: 100%; }
-                .invoice-details td { padding: 5px; }
-                .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-                .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; }
-                .items-table th { background-color: #f5f5f5; text-align: left; }
-                .total-section { text-align: right; }
-                .total-section table { margin-left: auto; width: 300px; }
-                .total-section td { padding: 8px; }
-                .total-row { font-weight: bold; font-size: 18px; border-top: 2px solid #333; }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    padding: 40px;
+                    background: #fff;
+                    color: #333;
+                    line-height: 1.6;
+                }
+                
+                .invoice-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    background: white;
+                }
+                
+                .invoice-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    padding-bottom: 30px;
+                    border-bottom: 3px solid #10b981;
+                    margin-bottom: 30px;
+                }
+                
+                .company-info h1 {
+                    color: #10b981;
+                    font-size: 32px;
+                    font-weight: 700;
+                    margin-bottom: 5px;
+                }
+                
+                .company-info p {
+                    color: #666;
+                    font-size: 14px;
+                }
+                
+                .invoice-meta {
+                    text-align: right;
+                }
+                
+                .invoice-meta h2 {
+                    color: #333;
+                    font-size: 28px;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                }
+                
+                .invoice-meta p {
+                    color: #666;
+                    font-size: 14px;
+                    margin: 5px 0;
+                }
+                
+                .invoice-meta .invoice-number {
+                    background: #f0fdf4;
+                    color: #10b981;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    display: inline-block;
+                    margin-top: 10px;
+                }
+                
+                .parties {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 40px;
+                    gap: 40px;
+                }
+                
+                .party-box {
+                    flex: 1;
+                    background: #f9fafb;
+                    padding: 20px;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                }
+                
+                .party-box h3 {
+                    color: #10b981;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    margin-bottom: 12px;
+                    font-weight: 600;
+                }
+                
+                .party-box p {
+                    color: #333;
+                    font-size: 14px;
+                    margin: 6px 0;
+                }
+                
+                .party-box strong {
+                    color: #111;
+                    font-weight: 600;
+                }
+                
+                .items-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                
+                .items-table thead {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                }
+                
+                .items-table th {
+                    padding: 16px;
+                    text-align: left;
+                    font-weight: 600;
+                    font-size: 13px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                
+                .items-table tbody tr {
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                
+                .items-table tbody tr:hover {
+                    background: #f9fafb;
+                }
+                
+                .items-table tbody tr:last-child {
+                    border-bottom: none;
+                }
+                
+                .items-table td {
+                    padding: 16px;
+                    font-size: 14px;
+                    color: #333;
+                }
+                
+                .items-table td:first-child {
+                    font-weight: 500;
+                }
+                
+                .summary-section {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-bottom: 40px;
+                }
+                
+                .summary-table {
+                    width: 350px;
+                }
+                
+                .summary-table table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                
+                .summary-table tr {
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                
+                .summary-table td {
+                    padding: 12px 16px;
+                    font-size: 14px;
+                }
+                
+                .summary-table td:first-child {
+                    color: #666;
+                    font-weight: 500;
+                }
+                
+                .summary-table td:last-child {
+                    text-align: right;
+                    font-weight: 600;
+                    color: #333;
+                }
+                
+                .summary-table .discount-row td {
+                    color: #f59e0b;
+                }
+                
+                .summary-table .tax-row td:last-child {
+                    color: #10b981;
+                }
+                
+                .summary-table .total-row {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    border: none;
+                }
+                
+                .summary-table .total-row td {
+                    color: white;
+                    font-size: 18px;
+                    font-weight: 700;
+                    padding: 16px;
+                }
+                
+                .promo-message {
+                    background: #f0fdf4;
+                    border-left: 4px solid #10b981;
+                    padding: 20px;
+                    border-radius: 6px;
+                    margin-bottom: 30px;
+                }
+                
+                .promo-message p {
+                    color: #059669;
+                    font-size: 14px;
+                    font-style: italic;
+                    margin: 0;
+                }
+                
+                .invoice-footer {
+                    text-align: center;
+                    padding-top: 30px;
+                    border-top: 2px solid #e5e7eb;
+                    color: #666;
+                    font-size: 12px;
+                }
+                
+                .invoice-footer p {
+                    margin: 5px 0;
+                }
+                
+                @media print {
+                    body { padding: 20px; }
+                    .invoice-container { box-shadow: none; }
+                }
             </style>
         </head>
         <body>
-            <div class="header">
-                <h1>WHOLESALE INVOICE</h1>
-                <p><strong>Invoice #:</strong> ${formatB2BOrderId(order.id)}</p>
-                <p><strong>Date:</strong> ${formattedDate}</p>
-            </div>
-            
-            <div class="invoice-details">
-                <table>
-                    <tr>
-                        <td><strong>Customer:</strong> ${order.customerName || 'N/A'}</td>
-                        <td><strong>Company:</strong> ${order.customerCompany || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Phone:</strong> ${order.customerPhone || 'N/A'}</td>
-                        <td><strong>Status:</strong> ${order.status || 'Pending'}</td>
-                    </tr>
-                </table>
-            </div>
-            
-            <table class="items-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th style="text-align: center;">Quantity</th>
-                        <th style="text-align: right;">Unit Price</th>
-                        <th style="text-align: right;">Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${itemsHTML}
-                </tbody>
-            </table>
-            
-            <div class="total-section">
-                <table>
-                    <tr>
-                        <td>Subtotal:</td>
-                        <td style="text-align: right;">${formatCurrencyKSh(order.subtotal || order.total)}</td>
-                    </tr>
-                    ${order.discount ? `
+            <div class="invoice-container">
+                <!-- Header -->
+                <div class="invoice-header">
+                    <div class="company-info">
+                        <h1>Vendly POS</h1>
+                        <p>Professional Business Solutions</p>
+                        <p>Wholesale & Distribution</p>
+                    </div>
+                    <div class="invoice-meta">
+                        <h2>INVOICE</h2>
+                        <div class="invoice-number">${formatB2BOrderId(order.id)}</div>
+                        <p style="margin-top: 15px;"><strong>Date:</strong> ${formattedDate}</p>
+                        <p><strong>Status:</strong> <span style="color: #10b981; font-weight: 600;">${order.status || 'Pending'}</span></p>
+                        <p><strong>Served By:</strong> ${order.attendant || 'Staff'}</p>
+                    </div>
+                </div>
+                
+                <!-- Bill To / From -->
+                <div class="parties">
+                    <div class="party-box">
+                        <h3>Bill To</h3>
+                        <p><strong>${order.customerName || 'N/A'}</strong></p>
+                        ${order.customerCompany ? `<p>${order.customerCompany}</p>` : ''}
+                        ${order.customerPhone ? `<p>Phone: ${order.customerPhone}</p>` : ''}
+                        ${order.customerEmail ? `<p>Email: ${order.customerEmail}</p>` : ''}
+                        ${order.customerAddress ? `<p style="margin-top: 8px;">${order.customerAddress}</p>` : ''}
+                    </div>
+                    
+                    <div class="party-box">
+                        <h3>From</h3>
+                        <p><strong>Your Business Name</strong></p>
+                        <p>123 Business Street</p>
+                        <p>Nairobi, Kenya</p>
+                        <p>Phone: +254 700 000000</p>
+                        <p>Email: info@yourbusiness.com</p>
+                    </div>
+                </div>
+                
+                <!-- Items Table -->
+                <table class="items-table">
+                    <thead>
                         <tr>
-                            <td>Discount:</td>
-                            <td style="text-align: right;">-${formatCurrencyKSh(order.discount)}</td>
+                            <th>Product Description</th>
+                            <th style="text-align: center; width: 100px;">Quantity</th>
+                            <th style="text-align: right; width: 130px;">Unit Price</th>
+                            <th style="text-align: right; width: 130px;">Amount</th>
                         </tr>
-                    ` : ''}
-                    ${order.tax ? `
-                        <tr>
-                            <td>Tax:</td>
-                            <td style="text-align: right;">${formatCurrencyKSh(order.tax)}</td>
-                        </tr>
-                    ` : ''}
-                    <tr class="total-row">
-                        <td>TOTAL:</td>
-                        <td style="text-align: right;">${formatCurrencyKSh(order.total || 0)}</td>
-                    </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHTML}
+                    </tbody>
                 </table>
+                
+                <!-- Summary -->
+                <div class="summary-section">
+                    <div class="summary-table">
+                        <table>
+                            <tr>
+                                <td>Subtotal</td>
+                                <td>${formatCurrencyKSh(order.subtotal || order.total)}</td>
+                            </tr>
+                            ${order.discount ? `
+                                <tr class="discount-row">
+                                    <td>Discount ${order.discountPercent ? `(${order.discountPercent}%)` : ''}</td>
+                                    <td>-${formatCurrencyKSh(order.discount)}</td>
+                                </tr>
+                            ` : ''}
+                            ${order.tax ? `
+                                <tr class="tax-row">
+                                    <td>Tax/VAT ${order.taxPercent ? `(${order.taxPercent}%)` : ''}</td>
+                                    <td>+${formatCurrencyKSh(order.tax)}</td>
+                                </tr>
+                            ` : ''}
+                            <tr class="total-row">
+                                <td>TOTAL</td>
+                                <td>${formatCurrencyKSh(order.total || 0)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Promotional Message -->
+                ${order.promoMessage ? `
+                    <div class="promo-message">
+                        <p>${order.promoMessage}</p>
+                    </div>
+                ` : ''}
+                
+                <!-- Footer -->
+                <div class="invoice-footer">
+                    <p><strong>Thank you for your business!</strong></p>
+                    <p>For inquiries, please contact us at the information provided above.</p>
+                    <p style="margin-top: 10px;">This is a computer-generated invoice and requires no signature.</p>
+                </div>
             </div>
             
             <script>
@@ -745,6 +1002,9 @@ function initializeB2BOrderForm() {
     // Load products from inventory
     loadB2BProducts();
     
+    // Initialize attendant dropdown
+    initializeB2BAttendantDropdown();
+    
     // Initialize search
     initializeB2BProductSearch();
     
@@ -759,6 +1019,50 @@ function initializeB2BOrderForm() {
     
     // Initialize save draft
     initializeB2BSaveDraft();
+}
+
+// Initialize Attendant Dropdown
+function initializeB2BAttendantDropdown() {
+    const attendantSelect = document.getElementById('b2bAttendant');
+    
+    if (!attendantSelect) return;
+    
+    // Common attendant names - you can customize this list
+    const attendants = [
+        'John Doe',
+        'Jane Smith',
+        'Michael Johnson',
+        'Sarah Williams',
+        'David Brown',
+        'Emily Davis',
+        'Robert Wilson',
+        'Maria Garcia'
+    ];
+    
+    // Get current user from localStorage
+    const currentUser = localStorage.getItem('userName') || '';
+    
+    // Clear existing options except the first placeholder
+    attendantSelect.innerHTML = '<option value="">Select Attendant</option>';
+    
+    // Add current user first if available
+    if (currentUser) {
+        const currentUserOption = document.createElement('option');
+        currentUserOption.value = currentUser;
+        currentUserOption.textContent = currentUser + ' (You)';
+        currentUserOption.selected = true;
+        attendantSelect.appendChild(currentUserOption);
+    }
+    
+    // Add other attendants
+    attendants.forEach(name => {
+        if (name !== currentUser) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            attendantSelect.appendChild(option);
+        }
+    });
 }
 
 // Load products from inventory
@@ -1106,6 +1410,7 @@ async function submitB2BOrder() {
     const customerPhone = document.getElementById('b2bCustomerPhone').value.trim();
     const customerEmail = document.getElementById('b2bCustomerEmail').value.trim();
     const customerAddress = document.getElementById('b2bCustomerAddress').value.trim();
+    const attendant = document.getElementById('b2bAttendant').value.trim();
     const promoMessage = document.getElementById('b2bPromoMessage').value.trim();
     
     if (!customerName) {
@@ -1115,6 +1420,11 @@ async function submitB2BOrder() {
     
     if (!customerPhone) {
         showToast('Please enter customer phone', 'error', 2000);
+        return;
+    }
+    
+    if (!attendant) {
+        showToast('Please select an attendant', 'error', 2000);
         return;
     }
     
@@ -1146,6 +1456,7 @@ async function submitB2BOrder() {
         discountPercent,
         tax: taxAmount,
         taxPercent,
+        attendant: attendant,
         total: grandTotal,
         promoMessage,
         status: 'pending',
@@ -1191,6 +1502,7 @@ function saveB2BDraft() {
         customerPhone: document.getElementById('b2bCustomerPhone').value.trim(),
         customerEmail: document.getElementById('b2bCustomerEmail').value.trim(),
         customerAddress: document.getElementById('b2bCustomerAddress').value.trim(),
+        attendant: document.getElementById('b2bAttendant').value.trim(),
         cart: b2bCart,
         discountPercent: document.getElementById('b2bDiscountPercent').value,
         taxPercent: document.getElementById('b2bTaxPercent').value,
@@ -1221,6 +1533,12 @@ function loadB2BDraft() {
         document.getElementById('b2bTaxPercent').value = draft.taxPercent || 0;
         document.getElementById('b2bPromoMessage').value = draft.promoMessage || 'Thank you for your business!';
         
+        // Restore attendant
+        const attendantSelect = document.getElementById('b2bAttendant');
+        if (attendantSelect && draft.attendant) {
+            attendantSelect.value = draft.attendant;
+        }
+        
         // Restore cart
         b2bCart = draft.cart || [];
         updateB2BCart();
@@ -1243,6 +1561,15 @@ function resetB2BForm() {
     document.getElementById('b2bDiscountPercent').value = '0';
     document.getElementById('b2bTaxPercent').value = '0';
     document.getElementById('b2bPromoMessage').value = 'Thank you for your business!';
+    
+    // Reset attendant to current user
+    const currentUser = localStorage.getItem('userName') || '';
+    const attendantSelect = document.getElementById('b2bAttendant');
+    if (attendantSelect && currentUser) {
+        attendantSelect.value = currentUser;
+    } else if (attendantSelect) {
+        attendantSelect.selectedIndex = 0;
+    }
     
     updateB2BCart();
     
