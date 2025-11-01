@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/sales.css">
     <link rel="stylesheet" href="css/b2b.css">
     <link rel="stylesheet" href="css/customers.css">
+    <link rel="stylesheet" href="css/expenses.css">
     <style>
         /* Override B2B green gradient for POS module - use clean white background */
         .pos-container .totals-summary .total-row {
@@ -2291,9 +2292,192 @@
             <div class="module" id="expenses-module">
                 <div class="module-header">
                     <h1>Expenses</h1>
+                    <button class="btn btn-primary" onclick="showModule('expenses-add')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Expense
+                    </button>
                 </div>
                 <div class="module-content">
-                    <!-- Expenses content will go here -->
+                    <!-- Statistics Cards -->
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 24px;">
+                        <div class="stat-card">
+                            <div class="stat-card-icon red">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <p class="stat-label">Today's Expenses</p>
+                                <h3 class="stat-value" id="expenseTodayTotal">KSh 0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-icon purple">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6" stroke="white" stroke-width="2"/>
+                                    <line x1="8" y1="2" x2="8" y2="6" stroke="white" stroke-width="2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10" stroke="white" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <p class="stat-label">This Month</p>
+                                <h3 class="stat-value" id="expenseMonthTotal">KSh 0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-icon orange">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <p class="stat-label">Pending Approval</p>
+                                <h3 class="stat-value" id="expensePendingCount">0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-icon green">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="stat-card-content">
+                                <p class="stat-label">Approved (Month)</p>
+                                <h3 class="stat-value" id="expenseApprovedCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters and Search -->
+                    <div class="filters-section" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto auto; gap: 12px; align-items: end;">
+                            <!-- Search -->
+                            <div class="form-group" style="margin: 0;">
+                                <label for="expenseSearch" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #475569;">Search</label>
+                                <input type="text" id="expenseSearch" placeholder="Search by description, category, vendor..." style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+
+                            <!-- Category Filter -->
+                            <div class="form-group" style="margin: 0;">
+                                <label for="expenseCategoryFilter" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #475569;">Category</label>
+                                <select id="expenseCategoryFilter" style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                                    <option value="all">All Categories</option>
+                                    <option value="Rent & Utilities">Rent & Utilities</option>
+                                    <option value="Salaries & Wages">Salaries & Wages</option>
+                                    <option value="Inventory Purchase">Inventory Purchase</option>
+                                    <option value="Transportation">Transportation</option>
+                                    <option value="Marketing & Advertising">Marketing & Advertising</option>
+                                    <option value="Office Supplies">Office Supplies</option>
+                                    <option value="Repairs & Maintenance">Repairs & Maintenance</option>
+                                    <option value="Insurance">Insurance</option>
+                                    <option value="Taxes & Licenses">Taxes & Licenses</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- Status Filter -->
+                            <div class="form-group" style="margin: 0;">
+                                <label for="expenseStatusFilter" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #475569;">Status</label>
+                                <select id="expenseStatusFilter" style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+
+                            <!-- Payment Method Filter -->
+                            <div class="form-group" style="margin: 0;">
+                                <label for="expensePaymentFilter" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #475569;">Payment</label>
+                                <select id="expensePaymentFilter" style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                                    <option value="all">All Methods</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="mpesa">M-Pesa</option>
+                                    <option value="bank">Bank Transfer</option>
+                                    <option value="card">Card</option>
+                                </select>
+                            </div>
+
+                            <!-- Date From -->
+                            <div class="form-group" style="margin: 0;">
+                                <label for="expenseDateFrom" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #475569;">From</label>
+                                <input type="date" id="expenseDateFrom" style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+
+                            <!-- Date To -->
+                            <div class="form-group" style="margin: 0;">
+                                <label for="expenseDateTo" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #475569;">To</label>
+                                <input type="date" id="expenseDateTo" style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+
+                            <!-- Clear Button -->
+                            <button id="clearExpenseFilters" class="btn btn-secondary" style="padding: 10px 16px; white-space: nowrap;">
+                                Clear
+                            </button>
+                        </div>
+
+                        <!-- Export Buttons -->
+                        <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                            <button id="exportExpensesCsv" class="btn btn-success" style="padding: 10px 20px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export CSV
+                            </button>
+                            <button id="exportExpensesExcel" class="btn btn-primary" style="padding: 10px 20px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+                                    <path d="M10 9l4 6"></path>
+                                    <path d="M14 9l-4 6"></path>
+                                </svg>
+                                Export Excel
+                            </button>
+                            <button id="exportExpensesPdf" class="btn btn-secondary" style="padding: 10px 20px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <path d="M14 2v6h6"></path>
+                                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                                    <polyline points="9 15 12 12 15 15"></polyline>
+                                </svg>
+                                Export PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Expenses Table -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Reference</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px;">
+                                        <div style="color: #94a3b8;">Loading expenses...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -2301,9 +2485,110 @@
             <div class="module" id="expenses-add-module">
                 <div class="module-header">
                     <h1>Add Expense</h1>
+                    <button class="btn btn-secondary" onclick="showModule('expenses')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Expenses
+                    </button>
                 </div>
                 <div class="module-content">
-                    <!-- Add expense form will go here -->
+                    <div class="form-container" style="max-width: 800px; margin: 0 auto;">
+                        <form id="expenseForm" class="form-card">
+                            <div class="form-grid">
+                                <!-- Date -->
+                                <div class="form-group">
+                                    <label for="expenseDate">Date <span style="color: #ef4444;">*</span></label>
+                                    <input type="date" id="expenseDate" required>
+                                </div>
+
+                                <!-- Category -->
+                                <div class="form-group">
+                                    <label for="expenseCategory">Category <span style="color: #ef4444;">*</span></label>
+                                    <select id="expenseCategory" required>
+                                        <option value="">Select Category</option>
+                                        <option value="Rent & Utilities">Rent & Utilities</option>
+                                        <option value="Salaries & Wages">Salaries & Wages</option>
+                                        <option value="Inventory Purchase">Inventory Purchase</option>
+                                        <option value="Transportation">Transportation</option>
+                                        <option value="Marketing & Advertising">Marketing & Advertising</option>
+                                        <option value="Office Supplies">Office Supplies</option>
+                                        <option value="Repairs & Maintenance">Repairs & Maintenance</option>
+                                        <option value="Insurance">Insurance</option>
+                                        <option value="Taxes & Licenses">Taxes & Licenses</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <!-- Amount -->
+                                <div class="form-group">
+                                    <label for="expenseAmount">Amount (KSh) <span style="color: #ef4444;">*</span></label>
+                                    <input type="number" id="expenseAmount" step="0.01" min="0" placeholder="0.00" required>
+                                </div>
+
+                                <!-- Payment Method -->
+                                <div class="form-group">
+                                    <label for="expensePaymentMethod">Payment Method <span style="color: #ef4444;">*</span></label>
+                                    <select id="expensePaymentMethod" required>
+                                        <option value="cash">Cash</option>
+                                        <option value="mpesa">M-Pesa</option>
+                                        <option value="bank">Bank Transfer</option>
+                                        <option value="card">Card</option>
+                                    </select>
+                                </div>
+
+                                <!-- Description (Full Width) -->
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label for="expenseDescription">Description <span style="color: #ef4444;">*</span></label>
+                                    <textarea id="expenseDescription" rows="3" placeholder="Enter expense description..." required></textarea>
+                                </div>
+
+                                <!-- Vendor/Payee -->
+                                <div class="form-group">
+                                    <label for="expenseVendor">Vendor/Payee</label>
+                                    <input type="text" id="expenseVendor" placeholder="Enter vendor or payee name">
+                                </div>
+
+                                <!-- Reference/Receipt -->
+                                <div class="form-group">
+                                    <label for="expenseReference">Reference/Receipt No.</label>
+                                    <input type="text" id="expenseReference" placeholder="Enter reference or receipt number">
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="form-actions" style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('expenseForm').reset(); document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];">
+                                    Clear Form
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    Add Expense
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Info Card -->
+                        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 16px; margin-top: 24px;">
+                            <div style="display: flex; gap: 12px;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" style="flex-shrink: 0;">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <div>
+                                    <h4 style="margin: 0 0 8px 0; color: #0c4a6e; font-size: 14px; font-weight: 600;">Expense Approval Process</h4>
+                                    <p style="margin: 0; color: #0369a1; font-size: 13px; line-height: 1.6;">
+                                        All new expenses are marked as "Pending" and require admin approval before being included in financial reports. 
+                                        Admins can review, approve, or reject expenses from the main expenses list.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2445,5 +2730,6 @@
     <script src="js/sales-export.js"></script>
     <script src="js/b2b.js"></script>
     <script src="js/customers.js"></script>
+    <script src="js/expenses.js"></script>
 </body>
 </html>

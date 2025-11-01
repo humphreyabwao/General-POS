@@ -347,6 +347,25 @@ function initializeModulePage(page) {
                 }
             }
             break;
+        case 'expenses':
+            if (typeof initializeExpensesModule === 'function') {
+                initializeExpensesModule();
+            }
+            break;
+        case 'expenses-add':
+            // Set default date to today
+            const expenseDateInput = document.getElementById('expenseDate');
+            if (expenseDateInput && !expenseDateInput.value) {
+                expenseDateInput.value = new Date().toISOString().split('T')[0];
+            }
+            // Reset form title if it was in edit mode
+            const formTitle = document.querySelector('#expenses-add-module .module-header h1');
+            const submitBtn = document.querySelector('#expenseForm button[type="submit"]');
+            if (formTitle) formTitle.textContent = 'Add Expense';
+            if (submitBtn) submitBtn.textContent = 'Add Expense';
+            // Clear editing flag
+            window.currentEditingExpenseId = null;
+            break;
         default:
             // Other modules can be initialized here
             break;
@@ -367,6 +386,12 @@ function navigateToPage(pageName) {
 
 // Make navigateToPage available globally
 window.navigateToPage = navigateToPage;
+
+// Alias for navigateToPage to match button onclick usage
+function showModule(pageName) {
+    navigateToPage(pageName);
+}
+window.showModule = showModule;
 
 // ===========================
 // Utility Functions
