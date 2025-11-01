@@ -398,7 +398,7 @@ function viewOrder(orderId) {
     console.log('Order found:', order);
     
     const modal = document.createElement('div');
-    modal.className = 'modal active';
+    modal.className = 'modal show';
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
@@ -971,7 +971,7 @@ function addProductToCart(productId) {
 
 function showManualProductModal() {
     const modalHtml = `
-        <div class="modal active" id="manualProductModal">
+    <div class="modal show" id="manualProductModal">
             <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
                     <h2>Add Product Manually</h2>
@@ -1381,7 +1381,7 @@ function viewSupplier(supplierId) {
     if (!supplier) return;
     
     const modal = document.createElement('div');
-    modal.className = 'modal active';
+    modal.className = 'modal show';
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
