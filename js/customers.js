@@ -733,7 +733,7 @@ function updateCustomerOrderCountDisplay(customerId, totalOrders) {
 // ===========================
 function showManualOrderCountModal(customer) {
     const modalHtml = `
-        <div class="modal active" id="manualOrderCountModal">
+        <div class="modal show customer-modal" id="manualOrderCountModal">
             <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
                     <h2>Update Order Count</h2>
@@ -862,9 +862,8 @@ function viewCustomerDetails(customer) {
     }
     
     const modal = document.createElement('div');
-    modal.className = 'modal active';
+    modal.className = 'modal show customer-modal';
     modal.id = 'customerDetailModal';
-    modal.style.display = 'flex'; // Force display immediately
     
     const createdDate = new Date(customer.createdAt).toLocaleDateString();
     const customerTypeLabel = customer.isCompany ? '🏢 Company' : '👤 Individual';
@@ -888,7 +887,7 @@ function viewCustomerDetails(customer) {
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Customer Details</h2>
-                <button class="modal-close-btn" onclick="this.closest('.modal').remove()">×</button>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
             </div>
             <div class="modal-body">
                 <div class="customer-detail-grid">
