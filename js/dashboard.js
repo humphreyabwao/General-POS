@@ -117,7 +117,7 @@ function updateDashboardStats(stats) {
     updateStatCard('profitLoss', formatCurrency(stats.profitLoss), false, true);
     updateStatCard('totalCustomers', stats.totalCustomers, false);
     updateStatCard('stockValue', formatCurrency(stats.stockValue), false);
-    updateStatCard('pendingB2B', 0, false); // TODO: Implement B2B orders
+    updateStatCard('pendingB2B', stats.pendingB2BOrders || 0, false);
     
     console.log('📊 Dashboard stats updated:', stats);
 }

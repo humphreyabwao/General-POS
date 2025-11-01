@@ -74,9 +74,19 @@ function setupB2BRealtimeListener() {
             
             console.log(`📦 Loaded ${b2bOrders.length} B2B orders`);
             
+            // Update global state if available
+            if (window.AppState) {
+                window.AppState.b2bOrders = b2bOrders;
+            }
+            
             // Update stats and display
             applyB2BFiltersAndDisplay();
             updateB2BStats();
+            
+            // Emit event to update dashboard
+            if (window.StateEvents) {
+                window.StateEvents.emit('b2bOrders:updated', b2bOrders);
+            }
             
         }, (error) => {
             console.error('❌ Error listening to B2B orders:', error);

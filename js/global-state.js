@@ -8,6 +8,7 @@ const AppState = {
     sales: [],
     customers: [],
     expenses: [],
+    b2bOrders: [],
     stats: {
         todaySales: 0,
         todayRevenue: 0,
@@ -16,13 +17,15 @@ const AppState = {
         totalCustomers: 0,
         stockValue: 0,
         lowStockCount: 0,
-        outOfStockCount: 0
+        outOfStockCount: 0,
+        pendingB2BOrders: 0
     },
     listeners: {
         products: null,
         sales: null,
         customers: null,
-        expenses: null
+        expenses: null,
+        b2bOrders: null
     },
     isInitialized: false,
     currentBranch: 'all'
@@ -91,6 +94,14 @@ async function initializeRealtimeSync() {
             console.log('💸 Expenses updated:', expenses.length);
             AppState.expenses = expenses;
             StateEvents.emit('expenses:updated', expenses);
+            calculateStats();
+        });
+        
+        // Initialize B2B orders listener
+        AppState.listeners.b2bOrders = Firebase.db.listenToPath('b2bOrders', (b2bOrders) => {
+            console.log('📦 B2B Orders updated:', b2bOrders.length);
+            AppState.b2bOrders = b2bOrders;
+            StateEvents.emit('b2bOrders:updated', b2bOrders);
             calculateStats();
         });
         
@@ -168,6 +179,12 @@ function calculateStats() {
     AppState.stats.stockValue = stockValue;
     AppState.stats.lowStockCount = lowStockCount;
     AppState.stats.outOfStockCount = outOfStockCount;
+    
+    // Calculate pending B2B orders
+    const pendingB2BOrders = AppState.b2bOrders.filter(order => 
+        order.status && order.status.toLowerCase() === 'pending'
+    ).length;
+    AppState.stats.pendingB2BOrders = pendingB2BOrders;
     
     // Emit stats updated event
     StateEvents.emit('stats:updated', AppState.stats);
@@ -391,6 +408,7 @@ function saveToLocalStorage() {
         localStorage.setItem('pos_sales', JSON.stringify(AppState.sales));
         localStorage.setItem('pos_customers', JSON.stringify(AppState.customers));
         localStorage.setItem('pos_expenses', JSON.stringify(AppState.expenses));
+        localStorage.setItem('pos_b2bOrders', JSON.stringify(AppState.b2bOrders));
         localStorage.setItem('pos_stats', JSON.stringify(AppState.stats));
         localStorage.setItem('pos_last_sync', new Date().toISOString());
     } catch (error) {
@@ -404,6 +422,7 @@ function loadFromLocalStorage() {
         AppState.sales = JSON.parse(localStorage.getItem('pos_sales') || '[]');
         AppState.customers = JSON.parse(localStorage.getItem('pos_customers') || '[]');
         AppState.expenses = JSON.parse(localStorage.getItem('pos_expenses') || '[]');
+        AppState.b2bOrders = JSON.parse(localStorage.getItem('pos_b2bOrders') || '[]');
         AppState.stats = JSON.parse(localStorage.getItem('pos_stats') || JSON.stringify(AppState.stats));
         
         console.log('📂 Data loaded from localStorage');
