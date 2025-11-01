@@ -15,6 +15,16 @@ const OrderFilterState = {
 };
 
 // ===========================
+// Utility Functions
+// ===========================
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// ===========================
 // Initialize Orders Module
 // ===========================
 function initializeOrdersModule() {
@@ -503,26 +513,284 @@ function confirmCancelOrder(orderId) {
 function initializeCreateOrderForm() {
     console.log('✅ Initializing Create Order Form');
     
+    // Reset cart
+    orderItems = [];
+    
     // Set default date to today
     const orderDateInput = document.getElementById('orderDate');
     if (orderDateInput) {
         orderDateInput.valueAsDate = new Date();
     }
     
-    // Initialize form submission
-    const form = document.getElementById('createOrderForm');
-    if (form) {
-        form.addEventListener('submit', handleCreateOrder);
-    }
-    
-    // Initialize add item button
-    const addItemBtn = document.getElementById('addOrderItemBtn');
-    if (addItemBtn) {
-        addItemBtn.addEventListener('click', addOrderItem);
-    }
-    
     // Populate supplier dropdown
     populateSupplierDropdown();
+    
+    // Initialize product search
+    initializeProductSearch();
+    
+    // Initialize manual product entry
+    const manualBtn = document.getElementById('addManualProductBtn');
+    if (manualBtn) {
+        manualBtn.addEventListener('click', showManualProductModal);
+    }
+    
+    // Initialize submit button
+    const submitBtn = document.getElementById('submitOrderBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', handleCreateOrder);
+    }
+    
+    // Render empty cart
+    renderOrderCart();
+    updateOrderSummary();
+}
+
+function initializeProductSearch() {
+    const searchInput = document.getElementById('orderProductSearch');
+    const searchResults = document.getElementById('orderSearchResults');
+    
+    if (!searchInput || !searchResults) return;
+    
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length < 2) {
+            searchResults.classList.remove('active');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            performProductSearch(query, searchResults);
+        }, 300);
+    });
+    
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.remove('active');
+        }
+    });
+}
+
+function performProductSearch(query, resultsContainer) {
+    const products = window.AppState?.products || [];
+    
+    const filteredProducts = products.filter(product => 
+        product.name.toLowerCase().includes(query) ||
+        product.sku?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query)
+    ).slice(0, 10);
+    
+    if (filteredProducts.length === 0) {
+        resultsContainer.innerHTML = '<div class="search-no-results">No products found</div>';
+        resultsContainer.classList.add('active');
+        return;
+    }
+    
+    resultsContainer.innerHTML = filteredProducts.map(product => `
+        <div class="search-result-item" onclick="addProductToCart('${product.id}')">
+            <div class="search-result-name">${product.name}</div>
+            <div class="search-result-details">
+                <span>SKU: ${product.sku || 'N/A'}</span>
+                <span>Stock: ${product.currentStock || 0}</span>
+                <span>${formatCurrency(product.buyPrice || 0)}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    resultsContainer.classList.add('active');
+}
+
+function addProductToCart(productId) {
+    const products = window.AppState?.products || [];
+    const product = products.find(p => p.id === productId);
+    
+    if (!product) return;
+    
+    // Check if product already in cart
+    const existingItem = orderItems.find(item => item.productId === productId);
+    
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        orderItems.push({
+            productId: product.id,
+            name: product.name,
+            quantity: 1,
+            price: product.buyPrice || 0
+        });
+    }
+    
+    // Clear search
+    const searchInput = document.getElementById('orderProductSearch');
+    const searchResults = document.getElementById('orderSearchResults');
+    if (searchInput) searchInput.value = '';
+    if (searchResults) searchResults.classList.remove('active');
+    
+    // Update UI
+    renderOrderCart();
+    updateOrderSummary();
+    showToast(`${product.name} added to cart`, 'success');
+}
+
+function showManualProductModal() {
+    const modalHtml = `
+        <div class="modal active" id="manualProductModal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>Add Product Manually</h2>
+                    <button class="modal-close" onclick="closeModal('manualProductModal')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="manualProductForm">
+                        <div class="form-group">
+                            <label for="manualProductName">Product Name *</label>
+                            <input type="text" id="manualProductName" class="form-control" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="manualProductQty">Quantity *</label>
+                                <input type="number" id="manualProductQty" class="form-control" value="1" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="manualProductPrice">Unit Price *</label>
+                                <input type="number" id="manualProductPrice" class="form-control" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('manualProductModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add to Cart</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Handle form submission
+    const form = document.getElementById('manualProductForm');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('manualProductName').value.trim();
+        const quantity = parseInt(document.getElementById('manualProductQty').value) || 1;
+        const price = parseFloat(document.getElementById('manualProductPrice').value) || 0;
+        
+        if (!name) {
+            showToast('Please enter product name', 'error');
+            return;
+        }
+        
+        orderItems.push({
+            productId: `manual_${Date.now()}`,
+            name,
+            quantity,
+            price,
+            isManual: true
+        });
+        
+        closeModal('manualProductModal');
+        renderOrderCart();
+        updateOrderSummary();
+        showToast(`${name} added to cart`, 'success');
+    });
+}
+
+function renderOrderCart() {
+    const cartContainer = document.getElementById('orderCartItems');
+    const cartCount = document.getElementById('cartItemCount');
+    
+    if (!cartContainer) return;
+    
+    // Update count
+    if (cartCount) {
+        cartCount.textContent = `${orderItems.length} ${orderItems.length === 1 ? 'item' : 'items'}`;
+    }
+    
+    if (orderItems.length === 0) {
+        cartContainer.innerHTML = `
+            <div class="empty-cart">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <circle cx="9" cy="21" r="1"/>
+                    <circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+                </svg>
+                <p>Your cart is empty</p>
+                <span>Search and add products to your order</span>
+            </div>
+        `;
+        return;
+    }
+    
+    cartContainer.innerHTML = orderItems.map((item, index) => `
+        <div class="cart-item-card" data-index="${index}">
+            <div class="cart-item-header">
+                <h4 class="cart-item-name">${item.name}</h4>
+                <button class="cart-item-remove" onclick="removeCartItem(${index})" title="Remove">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="cart-item-controls">
+                <div class="cart-control-group">
+                    <span class="cart-control-label">Quantity</span>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" onclick="updateCartQuantity(${index}, -1)" type="button">−</button>
+                        <span class="quantity-display">${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateCartQuantity(${index}, 1)" type="button">+</button>
+                    </div>
+                </div>
+                <div class="cart-control-group">
+                    <span class="cart-control-label">Unit Price</span>
+                    <input type="number" class="price-input" value="${item.price}" min="0" step="0.01" 
+                           onchange="updateCartPrice(${index}, this.value)">
+                </div>
+            </div>
+            <div class="cart-item-total">
+                <span>Subtotal:</span>
+                <strong>${formatCurrency(item.quantity * item.price)}</strong>
+            </div>
+        </div>
+    `).join('');
+}
+
+function removeCartItem(index) {
+    orderItems.splice(index, 1);
+    renderOrderCart();
+    updateOrderSummary();
+    showToast('Item removed from cart', 'info');
+}
+
+function updateCartQuantity(index, change) {
+    const item = orderItems[index];
+    if (!item) return;
+    
+    item.quantity += change;
+    if (item.quantity < 1) item.quantity = 1;
+    
+    renderOrderCart();
+    updateOrderSummary();
+}
+
+function updateCartPrice(index, newPrice) {
+    const item = orderItems[index];
+    if (!item) return;
+    
+    item.price = parseFloat(newPrice) || 0;
+    renderOrderCart();
+    updateOrderSummary();
 }
 
 function populateSupplierDropdown() {
@@ -533,62 +801,12 @@ function populateSupplierDropdown() {
         suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 }
 
-function addOrderItem() {
-    const itemsList = document.getElementById('orderItemsList');
-    if (!itemsList) return;
-    
-    const itemIndex = orderItems.length;
-    const itemHtml = `
-        <div class="order-item" data-index="${itemIndex}">
-            <div class="order-item-row">
-                <input type="text" placeholder="Product name" class="form-control" style="flex: 2;" data-field="name">
-                <input type="number" placeholder="Qty" class="form-control" style="flex: 0.5;" min="1" value="1" data-field="quantity">
-                <input type="number" placeholder="Price" class="form-control" style="flex: 1;" min="0" step="0.01" data-field="price">
-                <button type="button" class="btn-icon-danger" onclick="removeOrderItem(${itemIndex})">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `;
-    
-    itemsList.insertAdjacentHTML('beforeend', itemHtml);
-    orderItems.push({ name: '', quantity: 1, price: 0 });
-    
-    // Add event listeners to update calculations
-    const item = itemsList.lastElementChild;
-    item.querySelectorAll('input').forEach(input => {
-        input.addEventListener('input', updateOrderSummary);
-    });
-}
-
-function removeOrderItem(index) {
-    const item = document.querySelector(`.order-item[data-index="${index}"]`);
-    if (item) {
-        item.remove();
-        orderItems.splice(index, 1);
-        updateOrderSummary();
-    }
-}
+// Old functions removed - now using cart-based system
 
 function updateOrderSummary() {
-    const items = document.querySelectorAll('.order-item');
-    let totalItems = 0;
-    let totalQuantity = 0;
-    let totalAmount = 0;
-    
-    items.forEach(item => {
-        const qty = parseInt(item.querySelector('[data-field="quantity"]').value) || 0;
-        const price = parseFloat(item.querySelector('[data-field="price"]').value) || 0;
-        
-        if (qty > 0 && price > 0) {
-            totalItems++;
-            totalQuantity += qty;
-            totalAmount += qty * price;
-        }
-    });
+    const totalItems = orderItems.length;
+    const totalQuantity = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
     
     safeUpdateElement('orderTotalItems', totalItems);
     safeUpdateElement('orderTotalQuantity', totalQuantity);
@@ -596,37 +814,37 @@ function updateOrderSummary() {
 }
 
 function handleCreateOrder(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
-    const supplier = document.getElementById('orderSupplier').value;
-    const orderDate = document.getElementById('orderDate').value;
-    const expectedDate = document.getElementById('orderExpectedDate').value;
-    const reference = document.getElementById('orderReference').value;
-    const notes = document.getElementById('orderNotes').value;
+    const supplier = document.getElementById('orderSupplier')?.value;
+    const orderDate = document.getElementById('orderDate')?.value;
+    const expectedDate = document.getElementById('orderExpectedDate')?.value;
+    const reference = document.getElementById('orderReference')?.value;
+    const notes = document.getElementById('orderNotes')?.value;
     
     if (!supplier) {
         showToast('Please select a supplier', 'error');
         return;
     }
     
-    // Collect items
-    const items = [];
-    document.querySelectorAll('.order-item').forEach(item => {
-        const name = item.querySelector('[data-field="name"]').value.trim();
-        const quantity = parseInt(item.querySelector('[data-field="quantity"]').value) || 0;
-        const price = parseFloat(item.querySelector('[data-field="price"]').value) || 0;
-        
-        if (name && quantity > 0 && price > 0) {
-            items.push({ name, quantity, price });
-        }
-    });
-    
-    if (items.length === 0) {
-        showToast('Please add at least one item', 'error');
+    if (!orderDate) {
+        showToast('Please select order date', 'error');
         return;
     }
     
-    const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    if (orderItems.length === 0) {
+        showToast('Please add at least one item to your cart', 'error');
+        return;
+    }
+    
+    // Prepare items (remove productId and isManual flags for storage)
+    const items = orderItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
+    }));
+    
+    const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
     const orderId = generateOrderId();
     
     const orderData = {
@@ -1318,10 +1536,15 @@ window.initializeAddSupplierForm = initializeAddSupplierForm;
 window.viewOrder = viewOrder;
 window.updateOrderStatus = updateOrderStatus;
 window.confirmCancelOrder = confirmCancelOrder;
-window.removeOrderItem = removeOrderItem;
 window.exportOrders = exportOrders;
 window.viewSupplier = viewSupplier;
 window.editSupplier = editSupplier;
 window.confirmDeleteSupplier = confirmDeleteSupplier;
+// Cart functions
+window.addProductToCart = addProductToCart;
+window.removeCartItem = removeCartItem;
+window.updateCartQuantity = updateCartQuantity;
+window.updateCartPrice = updateCartPrice;
+window.closeModal = closeModal;
 
 console.log('✅ Orders Module Loaded');
