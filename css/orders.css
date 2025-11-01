@@ -1,0 +1,241 @@
+/* ===========================
+   Orders Module Styles
+   =========================== */
+
+/* Export Dropdown */
+.export-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.export-dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.export-dropdown-menu.active {
+    display: block;
+    animation: slideDownFade 0.2s ease;
+}
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.export-option {
+    width: 100%;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Montserrat', sans-serif;
+    text-align: left;
+}
+
+.export-option:hover {
+    background-color: var(--bg-secondary);
+}
+
+.export-option svg {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+}
+
+/* Order Items List */
+.order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.order-item {
+    background: var(--bg-tertiary);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.order-item-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.order-item-row .form-control {
+    margin: 0;
+}
+
+.btn-icon-danger {
+    background: transparent;
+    border: none;
+    color: var(--color-red);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-icon-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Order Summary Box */
+.order-summary-box {
+    background: var(--bg-tertiary);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 24px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-row.total {
+    padding-top: 16px;
+    margin-top: 8px;
+    border-top: 2px solid var(--border-color);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.summary-row.total span:last-child {
+    color: var(--color-blue);
+    font-size: 18px;
+}
+
+/* Status Badges */
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.badge-yellow {
+    background: rgba(234, 179, 8, 0.1);
+    color: #ca8a04;
+    border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.badge-blue {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.badge-green {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-red {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.badge-gray {
+    background: rgba(100, 116, 139, 0.1);
+    color: #64748b;
+    border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+.badge-purple {
+    background: rgba(168, 85, 247, 0.1);
+    color: #9333ea;
+    border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .badge-yellow {
+    background: rgba(234, 179, 8, 0.15);
+}
+
+[data-theme="dark"] .badge-blue {
+    background: rgba(37, 99, 235, 0.15);
+}
+
+[data-theme="dark"] .badge-green {
+    background: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .badge-red {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+/* Stat card icon colors */
+.stat-card-icon.yellow {
+    background-color: rgba(234, 179, 8, 0.1);
+    color: #ca8a04;
+}
+
+.stat-card-icon.purple {
+    background-color: rgba(168, 85, 247, 0.1);
+    color: #9333ea;
+}
+
+[data-theme="dark"] .stat-card-icon.yellow {
+    background-color: rgba(234, 179, 8, 0.15);
+}
+
+[data-theme="dark"] .stat-card-icon.purple {
+    background-color: rgba(168, 85, 247, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .order-item-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .order-item-row .form-control {
+        width: 100%;
+    }
+    
+    .btn-icon-danger {
+        align-self: flex-end;
+    }
+}

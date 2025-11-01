@@ -357,6 +357,21 @@ function initializeModulePage(page) {
                 initializeExpenseAddModule();
             }
             break;
+        case 'orders':
+            if (typeof initializeOrdersModule === 'function') {
+                initializeOrdersModule();
+            }
+            break;
+        case 'orders-new':
+            if (typeof initializeCreateOrderForm === 'function') {
+                initializeCreateOrderForm();
+            }
+            break;
+        case 'orders-add-supplier':
+            if (typeof initializeAddSupplierForm === 'function') {
+                initializeAddSupplierForm();
+            }
+            break;
         default:
             // Other modules can be initialized here
             break;
