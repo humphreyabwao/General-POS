@@ -353,18 +353,9 @@ function initializeModulePage(page) {
             }
             break;
         case 'expenses-add':
-            // Set default date to today
-            const expenseDateInput = document.getElementById('expenseDate');
-            if (expenseDateInput && !expenseDateInput.value) {
-                expenseDateInput.value = new Date().toISOString().split('T')[0];
+            if (typeof initializeExpenseAddModule === 'function') {
+                initializeExpenseAddModule();
             }
-            // Reset form title if it was in edit mode
-            const formTitle = document.querySelector('#expenses-add-module .module-header h1');
-            const submitBtn = document.querySelector('#expenseForm button[type="submit"]');
-            if (formTitle) formTitle.textContent = 'Add Expense';
-            if (submitBtn) submitBtn.textContent = 'Add Expense';
-            // Clear editing flag
-            window.currentEditingExpenseId = null;
             break;
         default:
             // Other modules can be initialized here

@@ -45,6 +45,9 @@ const EXPENSE_CATEGORIES = [
 function initializeExpensesModule() {
     console.log('📊 Initializing Expenses Module...');
     
+    // Clear any editing state when viewing expenses list
+    clearExpenseEditMode();
+    
     // Check if AppState is available
     if (!window.AppState) {
         console.warn('⚠️ AppState not available yet');
@@ -683,9 +686,27 @@ function editExpense(expenseId) {
         document.getElementById('expenseReference').value = expense.reference || '';
         
         // Update form title and button
-        document.querySelector('#expenses-add-module .module-header h1').textContent = 'Edit Expense';
-        document.querySelector('#expenseForm button[type="submit"]').textContent = 'Update Expense';
+        const titleElement = document.querySelector('#expenses-add-module .module-header h1');
+        const submitButton = document.querySelector('#expenseForm button[type="submit"]');
+        
+        if (titleElement) titleElement.textContent = 'Edit Expense';
+        if (submitButton) submitButton.textContent = 'Update Expense';
     }, 100);
+}
+
+// Clear expense edit mode
+function clearExpenseEditMode() {
+    console.log('🔄 Clearing expense edit mode');
+    
+    // Clear editing ID
+    window.currentEditingExpenseId = null;
+    
+    // Reset form title and button text
+    const titleElement = document.querySelector('#expenses-add-module .module-header h1');
+    const submitButton = document.querySelector('#expenseForm button[type="submit"]');
+    
+    if (titleElement) titleElement.textContent = 'Add Expense';
+    if (submitButton) submitButton.textContent = 'Add Expense';
 }
 
 // Close modal
@@ -900,7 +921,6 @@ function setupExpenseForm() {
             if (window.currentEditingExpenseId) {
                 console.log('✏️ Editing expense:', window.currentEditingExpenseId);
                 await updateExpense(window.currentEditingExpenseId, formData);
-                window.currentEditingExpenseId = null;
             } else {
                 console.log('➕ Adding new expense');
                 await addExpense(formData);
@@ -910,17 +930,41 @@ function setupExpenseForm() {
             form.reset();
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
             
+            // Clear editing mode
+            clearExpenseEditMode();
+            
             // Navigate back to expenses list
             showModule('expenses');
-            
-            // Reset form title
-            document.querySelector('#expenses-add-module .module-header h1').textContent = 'Add Expense';
-            document.querySelector('#expenseForm button[type="submit"]').textContent = 'Add Expense';
             
         } catch (error) {
             console.error('❌ Error saving expense:', error);
         }
     });
+}
+
+// Initialize expense add module
+function initializeExpenseAddModule() {
+    console.log('📝 Initializing Add Expense Module...');
+    
+    // If currentEditingExpenseId is NOT set, this is a new expense
+    // Clear the form and ensure we're in "add" mode
+    if (!window.currentEditingExpenseId) {
+        const form = document.getElementById('expenseForm');
+        if (form) {
+            form.reset();
+            const dateInput = document.getElementById('expenseDate');
+            if (dateInput) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+        
+        // Ensure UI is in "Add" mode
+        const titleElement = document.querySelector('#expenses-add-module .module-header h1');
+        const submitButton = document.querySelector('#expenseForm button[type="submit"]');
+        
+        if (titleElement) titleElement.textContent = 'Add Expense';
+        if (submitButton) submitButton.textContent = 'Add Expense';
+    }
 }
 
 // Initialize when DOM is ready
