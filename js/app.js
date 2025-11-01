@@ -327,6 +327,12 @@ function initializeModulePage(page) {
                 initializeSalesExport();
             }
             break;
+        case 'customers':
+        case 'customers-add':
+            if (typeof initializeCustomersModule === 'function') {
+                initializeCustomersModule();
+            }
+            break;
         case 'b2b-sales':
             if (typeof initializeB2BModule === 'function') {
                 initializeB2BModule();

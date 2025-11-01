@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/sales.css">
     <link rel="stylesheet" href="css/b2b.css">
+    <link rel="stylesheet" href="css/customers.css">
     <style>
         /* Override B2B green gradient for POS module - use clean white background */
         .pos-container .totals-summary .total-row {
@@ -1926,21 +1927,321 @@
 
             <!-- Customers Module -->
             <div class="module" id="customers-module">
-                <div class="module-header">
-                    <h1>Customers</h1>
+                <!-- Module Header -->
+                <div class="customers-header">
+                    <div class="header-left">
+                        <h1>Customers</h1>
+                        <p class="header-subtitle">Manage and track all your customers</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" id="addNewCustomerBtn">
+                            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v10M7 10h10" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Add New Customer</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="module-content">
-                    <!-- Customers content will go here -->
+
+                <!-- Stat Cards -->
+                <div class="customers-stats-grid">
+                    <div class="stat-card stat-card-blue">
+                        <div class="stat-card-icon blue-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 010 7.75"/>
+                            </svg>
+                        </div>
+                        <div class="stat-card-content">
+                            <p class="stat-card-label">Total Customers</p>
+                            <h3 class="stat-card-value" id="customersTotal">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-green">
+                        <div class="stat-card-icon green-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-card-content">
+                            <p class="stat-card-label">Active Customers</p>
+                            <h3 class="stat-card-value" id="customersActive">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-red">
+                        <div class="stat-card-icon red-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                        <div class="stat-card-content">
+                            <p class="stat-card-label">Inactive Customers</p>
+                            <h3 class="stat-card-value" id="customersInactive">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search & Filter Section -->
+                <div class="customers-toolbar">
+                    <div class="search-bar-container">
+                        <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="8" cy="8" r="6"/>
+                            <path d="m12 12 4 4"/>
+                        </svg>
+                        <input type="text" id="customersSearchInput" class="search-input" placeholder="Search by name, email, or phone...">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="customersFilterStatus" class="filter-select">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <select id="customersFilterSort" class="filter-select">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Customers Table -->
+                <div class="customers-table-container">
+                    <table class="customers-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Total Orders</th>
+                                <th>Total Spent</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTableBody">
+                            <!-- Rows will be populated here -->
+                        </tbody>
+                    </table>
+                    <div id="customersEmptyState" class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                        <p>No customers found</p>
+                        <button class="btn btn-secondary" id="emptyStateAddBtn">Add Your First Customer</button>
+                    </div>
                 </div>
             </div>
 
             <!-- Customers - Add Customer Module -->
             <div class="module" id="customers-add-module">
-                <div class="module-header">
-                    <h1>Add Customer</h1>
+                <div class="customers-form-header">
+                    <div class="header-left">
+                        <h1 id="addCustomerTitle">Add New Customer</h1>
+                        <p class="form-subtitle">Fill in the details below to add a new customer or company</p>
+                    </div>
                 </div>
                 <div class="module-content">
-                    <!-- Add customer form will go here -->
+                    <form id="customerForm" class="customer-form-enhanced">
+                        <!-- Customer Type Toggle -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Customer Type</h3>
+                                <p class="section-description">Select whether this is an individual or a company</p>
+                            </div>
+                            <div class="customer-type-toggle">
+                                <button type="button" class="type-toggle-btn active" data-type="individual" id="toggleIndividual">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                    <span>Individual</span>
+                                </button>
+                                <button type="button" class="type-toggle-btn" data-type="company" id="toggleCompany">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 21h18M3 7v14M21 7v14M9 21V7m6 14V7M5 3h14a2 2 0 0 1 2 2v2H3V5a2 2 0 0 1 2-2zM9 11h.01M15 11h.01M9 15h.01M15 15h.01"/>
+                                    </svg>
+                                    <span>Company</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Basic Information -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Basic Information</h3>
+                                <p class="section-description">Primary contact information</p>
+                            </div>
+                            
+                            <!-- Individual Fields (Default) -->
+                            <div id="individualFields">
+                                <div class="form-group">
+                                    <label for="customerName" class="form-label">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                        Full Name <span class="required-star">*</span>
+                                    </label>
+                                    <input type="text" id="customerName" class="form-input" required placeholder="Enter full name">
+                                </div>
+                            </div>
+
+                            <!-- Company Fields (Hidden by default) -->
+                            <div id="companyFields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="companyName" class="form-label">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 21h18M3 7v14M21 7v14M9 21V7m6 14V7M5 3h14a2 2 0 0 1 2 2v2H3V5a2 2 0 0 1 2-2z"/>
+                                        </svg>
+                                        Company Name <span class="required-star">*</span>
+                                    </label>
+                                    <input type="text" id="companyName" class="form-input" placeholder="Enter company name">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="companyContactPerson" class="form-label">Contact Person</label>
+                                        <input type="text" id="companyContactPerson" class="form-input" placeholder="Primary contact person">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="companyRegistration" class="form-label">Registration Number</label>
+                                        <input type="text" id="companyRegistration" class="form-input" placeholder="Company registration">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="customerEmail" class="form-label">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                            <polyline points="22,6 12,13 2,6"/>
+                                        </svg>
+                                        Email Address
+                                    </label>
+                                    <input type="email" id="customerEmail" class="form-input" placeholder="email@example.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customerPhone" class="form-label">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                        </svg>
+                                        Phone Number <span class="required-star">*</span>
+                                    </label>
+                                    <input type="tel" id="customerPhone" class="form-input" required placeholder="+254 712 345 678">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Address Information -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Address Information</h3>
+                                <p class="section-description">Location and contact details</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="customerAddress" class="form-label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    Street Address
+                                </label>
+                                <input type="text" id="customerAddress" class="form-input" placeholder="123 Main Street">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="customerCity" class="form-label">City</label>
+                                    <input type="text" id="customerCity" class="form-input" placeholder="Nairobi">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customerCountry" class="form-label">Country</label>
+                                    <input type="text" id="customerCountry" class="form-input" placeholder="Kenya" value="Kenya">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Settings -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Account Settings</h3>
+                                <p class="section-description">Customer classification and status</p>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="customerStatus" class="form-label">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                            <polyline points="22 4 12 14.01 9 11.01"/>
+                                        </svg>
+                                        Account Status
+                                    </label>
+                                    <select id="customerStatus" class="form-input">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="customerType" class="form-label">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="8.5" cy="7" r="4"/>
+                                            <polyline points="17 11 19 13 23 9"/>
+                                        </svg>
+                                        Customer Type
+                                    </label>
+                                    <select id="customerType" class="form-input">
+                                        <option value="retail">Retail Customer</option>
+                                        <option value="wholesale">Wholesale Customer</option>
+                                        <option value="vip">VIP Customer</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Information -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Additional Information</h3>
+                                <p class="section-description">Notes and special instructions</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="customerNotes" class="form-label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                    Notes
+                                </label>
+                                <textarea id="customerNotes" class="form-input form-textarea" placeholder="Add any additional notes, preferences, or special instructions..." rows="4"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions-enhanced">
+                            <button type="button" class="btn btn-cancel" id="cancelCustomerBtn">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-save">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span id="saveButtonText">Save Customer</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -2101,5 +2402,6 @@
     <script src="js/sales.js"></script>
     <script src="js/sales-export.js"></script>
     <script src="js/b2b.js"></script>
+    <script src="js/customers.js"></script>
 </body>
 </html>
