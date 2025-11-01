@@ -141,6 +141,38 @@ function initializeCustomersActions() {
         });
     }
     
+    // Export button and dropdown
+    const exportBtn = document.getElementById('exportCustomersBtn');
+    const exportDropdown = document.querySelector('.export-dropdown-menu');
+    
+    if (exportBtn && exportDropdown) {
+        exportBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportDropdown.classList.toggle('active');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.export-dropdown')) {
+                exportDropdown.classList.remove('active');
+            }
+        });
+        
+        // Export options
+        document.querySelectorAll('.export-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                const format = e.currentTarget.dataset.format;
+                exportDropdown.classList.remove('active');
+                
+                if (format === 'excel') {
+                    exportCustomersToExcel();
+                } else if (format === 'pdf') {
+                    exportCustomersToPDF();
+                }
+            });
+        });
+    }
+    
     // Empty state add button
     const emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
     if (emptyStateAddBtn) {
@@ -832,4 +864,226 @@ function formatCurrency(value) {
 // ===========================
 // Export Functions
 // ===========================
+function exportCustomersToExcel() {
+    try {
+        // Use filtered customers if filters are active, otherwise use all customers
+        const customersToExport = filteredCustomers.length > 0 ? filteredCustomers : customersCache;
+        
+        if (customersToExport.length === 0) {
+            showToast('No customers to export', 'warning', 2000);
+            return;
+        }
+        
+        // Prepare data for Excel
+        const excelData = customersToExport.map(customer => {
+            const baseData = {
+                'Customer ID': customer.id,
+                'Name': customer.name,
+                'Email': customer.email,
+                'Phone': customer.phone,
+                'Type': customer.isCompany ? 'Company' : 'Individual',
+                'Status': customer.status === 'active' ? 'Active' : 'Inactive',
+                'Created Date': new Date(customer.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })
+            };
+            
+            // Add company-specific fields if it's a company
+            if (customer.isCompany && customer.companyInfo) {
+                baseData['Company Name'] = customer.companyInfo.companyName || '-';
+                baseData['Contact Person'] = customer.companyInfo.contactPerson || '-';
+                baseData['Registration Number'] = customer.companyInfo.registrationNumber || '-';
+            }
+            
+            return baseData;
+        });
+        
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        
+        // Set column widths
+        const colWidths = [
+            { wch: 15 }, // Customer ID
+            { wch: 25 }, // Name
+            { wch: 30 }, // Email
+            { wch: 15 }, // Phone
+            { wch: 12 }, // Type
+            { wch: 10 }, // Status
+            { wch: 20 }, // Created Date
+        ];
+        
+        // Add company columns width if any company customers exist
+        const hasCompanies = customersToExport.some(c => c.isCompany);
+        if (hasCompanies) {
+            colWidths.push(
+                { wch: 25 }, // Company Name
+                { wch: 25 }, // Contact Person
+                { wch: 20 }  // Registration Number
+            );
+        }
+        
+        ws['!cols'] = colWidths;
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+        
+        // Generate filename with date
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `customers_export_${date}.xlsx`;
+        
+        // Download file
+        XLSX.writeFile(wb, filename);
+        
+        showToast(`Exported ${customersToExport.length} customers to Excel`, 'success', 2000);
+        console.log('✅ Customers exported to Excel:', filename);
+        
+    } catch (error) {
+        console.error('❌ Error exporting to Excel:', error);
+        showToast('Error exporting to Excel: ' + error.message, 'error', 3000);
+    }
+}
+
+function exportCustomersToPDF() {
+    try {
+        // Use filtered customers if filters are active, otherwise use all customers
+        const customersToExport = filteredCustomers.length > 0 ? filteredCustomers : customersCache;
+        
+        if (customersToExport.length === 0) {
+            showToast('No customers to export', 'warning', 2000);
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        
+        // Add title
+        doc.setFontSize(18);
+        doc.setTextColor(37, 99, 235); // Blue color
+        doc.text('Customers Report', 14, 20);
+        
+        // Add export date and count
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        const exportDate = new Date().toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        doc.text(`Export Date: ${exportDate}`, 14, 28);
+        doc.text(`Total Customers: ${customersToExport.length}`, 14, 34);
+        
+        // Prepare table data
+        const tableData = customersToExport.map(customer => {
+            const row = [
+                customer.name,
+                customer.email,
+                customer.phone,
+                customer.isCompany ? '🏢 Company' : '👤 Individual',
+                customer.status === 'active' ? 'Active' : 'Inactive',
+                new Date(customer.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                })
+            ];
+            
+            // Add company name if it's a company
+            if (customer.isCompany && customer.companyInfo?.companyName) {
+                row.push(customer.companyInfo.companyName);
+            } else {
+                row.push('-');
+            }
+            
+            return row;
+        });
+        
+        // Define table columns
+        const columns = [
+            { header: 'Name', dataKey: 'name' },
+            { header: 'Email', dataKey: 'email' },
+            { header: 'Phone', dataKey: 'phone' },
+            { header: 'Type', dataKey: 'type' },
+            { header: 'Status', dataKey: 'status' },
+            { header: 'Created', dataKey: 'created' },
+            { header: 'Company', dataKey: 'company' }
+        ];
+        
+        // Add table
+        doc.autoTable({
+            startY: 40,
+            head: [['Name', 'Email', 'Phone', 'Type', 'Status', 'Created', 'Company']],
+            body: tableData,
+            theme: 'grid',
+            styles: {
+                fontSize: 9,
+                cellPadding: 4,
+                overflow: 'linebreak',
+                font: 'helvetica'
+            },
+            headStyles: {
+                fillColor: [37, 99, 235], // Blue
+                textColor: 255,
+                fontStyle: 'bold',
+                halign: 'left'
+            },
+            alternateRowStyles: {
+                fillColor: [245, 247, 250]
+            },
+            columnStyles: {
+                0: { cellWidth: 35 }, // Name
+                1: { cellWidth: 50 }, // Email
+                2: { cellWidth: 30 }, // Phone
+                3: { cellWidth: 25 }, // Type
+                4: { cellWidth: 20 }, // Status
+                5: { cellWidth: 25 }, // Created
+                6: { cellWidth: 35 }  // Company
+            },
+            didDrawCell: (data) => {
+                // Color code status column
+                if (data.column.index === 4 && data.cell.section === 'body') {
+                    const status = data.cell.raw;
+                    if (status === 'Active') {
+                        doc.setTextColor(5, 150, 105); // Green
+                    } else {
+                        doc.setTextColor(220, 38, 38); // Red
+                    }
+                }
+            }
+        });
+        
+        // Add footer with page numbers
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(
+                `Page ${i} of ${pageCount}`,
+                doc.internal.pageSize.getWidth() / 2,
+                doc.internal.pageSize.getHeight() - 10,
+                { align: 'center' }
+            );
+        }
+        
+        // Generate filename with date
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `customers_report_${date}.pdf`;
+        
+        // Download file
+        doc.save(filename);
+        
+        showToast(`Exported ${customersToExport.length} customers to PDF`, 'success', 2000);
+        console.log('✅ Customers exported to PDF:', filename);
+        
+    } catch (error) {
+        console.error('❌ Error exporting to PDF:', error);
+        showToast('Error exporting to PDF: ' + error.message, 'error', 3000);
+    }
+}
+
 console.log('✅ Customers Module Loaded');
